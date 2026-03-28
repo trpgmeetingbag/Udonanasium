@@ -99,3 +99,132 @@ input {
   right: 0;
   font-size: 0.9em;
 }
+
+/* 立ち絵セクションを一行丸ごと占有させるための重要設定 */
+.full-width {
+  flex: 1 1 100% !important; /* 横幅いっぱいに広がるよう強制 */
+  width: 100% !important;
+  min-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.tachie-section-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.tachie-box-styled {
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid #777;
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tachie-section-title {
+  font-weight: bold;
+  font-size: 14px;
+  color: #fff;
+  border-left: 4px solid #00ff00;
+  padding-left: 8px;
+  margin-bottom: 10px;
+}
+
+.strong-label {
+  color: #fff !important;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.tachie-slider-row {
+  margin: 10px 0;
+}
+.tachie-slider {
+  width: 100%;
+  cursor: pointer;
+}
+.tachie-icon-info {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #555;
+  padding-top: 4px;
+}
+
+.tachie-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tachie-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.tachie-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+.tachie-list-thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: #000;
+  border: 1px solid #666;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.tachie-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1;
+}
+
+.tachie-list-number {
+  font-size: 11px;
+  color: #00ff00;
+  font-weight: bold;
+}
+
+.tachie-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px;
+  background: #111;
+  border: 1px solid #00ff00;
+  color: #fff;
+}
+
+.tachie-list-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.tachie-btn {
+  background: #444;
+  border: 1px solid #999;
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+.tachie-btn:hover { background: #666; }
+.tachie-btn.danger { background: #822; border-color: #f55; }

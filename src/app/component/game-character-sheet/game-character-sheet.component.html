@@ -39,6 +39,7 @@
     <img class="main-image" [src]="tabletopObject.imageFile.url | safe: 'resourceUrl'" [alt]="tabletopObject.imageFile.name"
     />
   </div>
+
   <ng-container *ngIf="tabletopObject.commonDataElement">
     <div class="flex-item">
       <div class="table">
@@ -48,9 +49,63 @@
   </ng-container>
 
   <ng-container *ngIf="tabletopObject.detailDataElement">
-    <div class="flex-item" *ngFor="let childElement of tabletopObject.detailDataElement.children">
-      <div class="table">
-        <div class="table-row" game-data-element [gameDataElement]="$any(childElement)" [isEdit]="isEdit"></div>
+    <ng-container *ngFor="let childElement of tabletopObject.detailDataElement.children">
+      <div class="flex-item" *ngIf="$any(childElement).name !== 'tachie'">
+        <div class="table">
+          <div class="table-row" game-data-element [gameDataElement]="$any(childElement)" [isEdit]="isEdit"></div>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <ng-container *ngIf="tabletopObject.aliasName === 'character'">
+    <div class="flex-item full-width">
+      <div class="tachie-section-container">
+
+        <div class="tachie-box-styled">
+          <div class="tachie-section-title">コマ画像</div>
+          <div class="tachie-slider-row">
+            <input type="range" class="tachie-slider" min="0" 
+                   [max]="tachieElements.length > 0 ? tachieElements.length - 1 : 0" 
+                   [ngModel]="iconIndex" (ngModelChange)="iconIndex = $event" 
+                   [ngModelOptions]="{standalone: true}">
+          </div>
+          <div class="tachie-icon-info">
+            <span class="strong-label">ICON</span>
+            <span class="strong-label">{{iconIndex}} / {{tachieElements.length > 0 ? tachieElements.length - 1 : 0}}</span>
+          </div>
+        </div>
+
+        <div class="tachie-box-styled">
+          <div class="tachie-section-title">立ち絵位置</div>
+          <div class="tachie-slider-row">
+            <input type="range" class="tachie-slider" min="0" [max]="MAX_TACHIE_POS" [(ngModel)]="tachiePosition" [ngModelOptions]="{standalone: true}">
+          </div>
+          <div class="tachie-icon-info">
+            <span class="strong-label">POS</span>
+            <span class="strong-label">値: {{tachiePosition}} ({{tachiePosition}} / {{MAX_TACHIE_POS}})</span>
+          </div>
+        </div>
+
+        <div class="tachie-box-styled">
+          <div class="tachie-header">
+            <div class="tachie-section-title">image</div>
+            <button class="tachie-btn" (click)="openTachieImageModal()">新しい項目を追加</button>
+          </div>
+          <div class="tachie-list">
+            <div *ngFor="let tachie of tachieElements; let i = index" class="tachie-list-item">
+              <img [src]="getTachieUrl(tachie.value) | safe: 'resourceUrl'" class="tachie-list-thumb">
+              <div class="tachie-list-info">
+                <div class="tachie-list-number">立ち絵番号{{i}}:</div>
+                <input class="tachie-name-input" [(ngModel)]="tachie.name" [ngModelOptions]="{standalone: true}">
+                <div class="tachie-list-buttons">
+                  <button class="tachie-btn" (click)="openTachieImageModal(tachie)">画像変更</button>
+                  <button class="tachie-btn danger" (click)="removeTachieImage(tachie)">削除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </ng-container>

@@ -52,5 +52,8 @@ export class FileSelecterComponent implements OnInit, OnDestroy, AfterViewInit {
   onSelectedFile(file: ImageFile) {
     EventSystem.call('SELECT_FILE', { fileIdentifier: file.identifier }, Network.peerId);
     this.modalService.resolve(file.identifier);
+
+    //追加部分
+    this.panelService.close();
   }
 }
