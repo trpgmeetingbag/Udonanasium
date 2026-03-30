@@ -1,6 +1,38 @@
 <div class="container">
   <div class="message" [ngClass]="{'direct-message': (chatMessage.isDirect || chatMessage.isSecret), 'system-message':chatMessage.isSystem, 'dicebot-message': chatMessage.isDicebot}"
     [@flyInOut]="animeState">
+    
+    <div class="image">
+      <img *ngIf="chatMessage.imageUrl" [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵" />
+      <img *ngIf="!chatMessage.imageUrl && 0 < imageFile?.url?.length" [src]="imageFile?.url | safe: 'resourceUrl'" alt="アイコン" />
+    </div>
+
+    <div class="body">
+      <div class="title">
+        <span class="msg-name" [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.name}}</span>
+        <span class='tip msg-from' [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.from}}</span>
+        <span class='tip msg-timestamp' [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.timestamp | date:'y/M/d H:mm'}}</span>
+      </div>
+      
+      <div class="text msg-text" [style.color]="chatMessage.color ? chatMessage.color : null">
+        <ng-container *ngIf="!chatMessage.isSecret || chatMessage.isSendFromSelf; then visible; else secret"></ng-container>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #visible>
+  <span>{{chatMessage.text}}</span>
+  <button *ngIf="chatMessage.isSecret" (click)="discloseMessage()">結果を公開</button>
+</ng-template>
+
+<ng-template #secret>
+  <span>（シークレットダイス）</span>
+</ng-template>
+
+<!-- <div class="container">
+  <div class="message" [ngClass]="{'direct-message': (chatMessage.isDirect || chatMessage.isSecret), 'system-message':chatMessage.isSystem, 'dicebot-message': chatMessage.isDicebot}"
+    [@flyInOut]="animeState">
     <div class="image">
       <img *ngIf="0 < imageFile?.url?.length" [src]="imageFile?.url | safe: 'resourceUrl'" />
     </div>
@@ -10,16 +42,28 @@
         <span class='tip msg-from'>{{chatMessage.from}}</span>
         <span class='tip msg-timestamp'>{{chatMessage.timestamp | date:'y/M/d H:mm'}}</span>
       </div>
-      <div class="text msg-text">
+      
+      書き換え前の構造
+      <div class="tachie-thumbnail" *ngIf="chatMessage.tachieId && chatMessage.imageUrl">
+        <img [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵サムネイル" />
+      </div>
+
+      <div class="tachie-thumbnail" *ngIf="chatMessage.imageIdentifier && chatMessage.imageUrl">
+        <img [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵サムネイル" />
+      </div>
+
+      <div class="text msg-text" [style.color]="chatMessage.color ? chatMessage.color : null">
         <ng-container *ngIf="!chatMessage.isSecret || chatMessage.isSendFromSelf; then visible; else secret"></ng-container>
       </div>
     </div>
   </div>
 </div>
+
 <ng-template #visible>
   <span>{{chatMessage.text}}</span>
   <button *ngIf="chatMessage.isSecret" (click)="discloseMessage()">結果を公開</button>
 </ng-template>
+
 <ng-template #secret>
   <span>（シークレットダイス）</span>
-</ng-template>
+</ng-template> -->

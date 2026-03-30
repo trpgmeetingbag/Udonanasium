@@ -28,6 +28,17 @@
       </ng-container>
       <button (click)="showDicebotHelp()" [disabled]="diceBotInfos.length < 1">?</button>
     </div>
+
+    <!------------------------------------- ↓追加分↓ ------------------------------------->
+    <div style="margin-top: 4px; margin-bottom: 4px; display: flex; align-items: center;">
+      <input type="color" [(ngModel)]="chatColor" [ngModelOptions]="{standalone: true}" style="width: 25px; height: 25px; padding: 0; border: none; cursor: pointer;" title="文字色変更">
+      <span style="font-size: 12px; margin-left: 4px; margin-right: 12px;">🎨色設定</span>
+      
+      <input type="range" min="0" [max]="maxTachieIndex" [(ngModel)]="tachieIndex" [ngModelOptions]="{standalone: true}" style="width: 150px;" [disabled]="maxTachieIndex === 0">
+      <span style="font-size: 12px; margin-left: 4px; font-weight: bold;">{{currentTachieName}}</span>
+    </div>
+    <!------------------------------------- ↑追加分↑ ------------------------------------->
+
     <div>
       <form>
         <textarea class="chat-input" placeholder="Enterで送信  Shift+Enterで改行" [(ngModel)]="text"

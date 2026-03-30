@@ -97,7 +97,8 @@
               <img [src]="getTachieUrl(tachie.value) | safe: 'resourceUrl'" class="tachie-list-thumb">
               <div class="tachie-list-info">
                 <div class="tachie-list-number">立ち絵番号{{i}}:</div>
-                <input class="tachie-name-input" [(ngModel)]="tachie.name" [ngModelOptions]="{standalone: true}">
+                <input class="tachie-name-input" [(ngModel)]="tachie.currentValue" [ngModelOptions]="{standalone: true}">
+                <!-- <input class="tachie-name-input" [(ngModel)]="tachie.name" [ngModelOptions]="{standalone: true}"> -->
                 <div class="tachie-list-buttons">
                   <button class="tachie-btn" (click)="openTachieImageModal(tachie)">画像変更</button>
                   <button class="tachie-btn danger" (click)="removeTachieImage(tachie)">削除</button>

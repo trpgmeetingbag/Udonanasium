@@ -114,11 +114,25 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
     component.selectedTab = this.chatTab;
   }
 
-  sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string }) {
+  // ーーーまるごと書き換えーーー
+sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }) {
     if (this.chatTab) {
-      this.chatMessageService.sendMessage(this.chatTab, value.text, value.gameType, value.sendFrom, value.sendTo);
+      this.chatMessageService.sendMessage(this.chatTab, value.text, value.gameType, value.sendFrom, value.sendTo, value.color, value.tachieId);
     }
   }
+  //古いコード
+  // sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string, color: string, pos: number }) {
+  //   if (this.chatTab) {
+  //     // サービス側の sendMessage に、color と pos の情報も渡す
+  //     this.chatMessageService.sendMessage(this.chatTab, value.text, value.gameType, value.sendFrom, value.sendTo, value.color, value.pos);
+  //   }
+  // }
+  // ーーーまるごと書き換えここまでーーー
+  // sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string }) {
+  //   if (this.chatTab) {
+  //     this.chatMessageService.sendMessage(this.chatTab, value.text, value.gameType, value.sendFrom, value.sendTo);
+  //   }
+  // }
 
   trackByChatTab(index: number, chatTab: ChatTab) {
     return chatTab.identifier;

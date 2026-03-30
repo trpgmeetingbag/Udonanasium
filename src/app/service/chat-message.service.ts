@@ -74,19 +74,66 @@ export class ChatMessageService {
     return Math.floor(this.timeOffset + (performance.now() - this.performanceOffset));
   }
 
-  sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, sendTo?: string): ChatMessage {
+
+  // ーーーまるごと書き換えーーー
+sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
     let chatMessage: ChatMessageContext = {
       from: Network.peer.userId,
       to: this.findId(sendTo),
       name: this.makeMessageName(sendFrom, sendTo),
-      imageIdentifier: this.findImageIdentifier(sendFrom),
+      imageIdentifier: tachieId || this.findImageIdentifier(sendFrom), // 送られてきた立ち絵IDを適用
       timestamp: this.calcTimeStamp(chatTab),
       tag: gameType,
       text: text,
     };
 
-    return chatTab.addMessage(chatMessage);
+    let message = chatTab.addMessage(chatMessage);
+    if (message) {
+      message.setAttribute('messColor', color);
+      message.setAttribute('sendFrom', sendFrom);
+      // POSは後のフェーズでキャラクターデータから直接読み取るため、ここでは一旦0固定で保存します
+      message.setAttribute('imagePos', '0');
+    }
+    return message;
   }
+  //古いコード
+  // sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, sendTo?: string, color: string = '#000000', pos: number = 0): ChatMessage {
+  //   let chatMessage: ChatMessageContext = {
+  //     from: Network.peer.userId,
+  //     to: this.findId(sendTo),
+  //     name: this.makeMessageName(sendFrom, sendTo),
+  //     imageIdentifier: this.findImageIdentifier(sendFrom),
+  //     timestamp: this.calcTimeStamp(chatTab),
+  //     tag: gameType,
+  //     text: text,
+  //   };
+
+  //   // 一旦メッセージを作成
+  //   let message = chatTab.addMessage(chatMessage);
+    
+  //   // 生成されたメッセージオブジェクトに、カスタム属性（XMLの要素）として色やPOSを書き込む
+  //   if (message) {
+  //     message.setAttribute('messColor', color);
+  //     message.setAttribute('imagePos', pos.toString());
+  //     message.setAttribute('sendFrom', sendFrom);
+  //   }
+
+  //   return message;
+  // }
+  // ーーーまるごと書き換えここまでーーー
+  // sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, sendTo?: string): ChatMessage {
+  //   let chatMessage: ChatMessageContext = {
+  //     from: Network.peer.userId,
+  //     to: this.findId(sendTo),
+  //     name: this.makeMessageName(sendFrom, sendTo),
+  //     imageIdentifier: this.findImageIdentifier(sendFrom),
+  //     timestamp: this.calcTimeStamp(chatTab),
+  //     tag: gameType,
+  //     text: text,
+  //   };
+
+  //   return chatTab.addMessage(chatMessage);
+  // }
 
   private findId(identifier: string): string {
     let object = ObjectStore.instance.get(identifier);

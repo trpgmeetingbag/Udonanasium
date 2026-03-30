@@ -14,6 +14,9 @@ import { ChatMessageService } from 'service/chat-message.service';
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 
+import { DataElement } from '@udonarium/data-element';
+import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
+
 @Component({
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
@@ -45,21 +48,174 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   get text(): string { return this._text };
   set text(text: string) { this._text = text; this.textChange.emit(text); }
 
-  @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string }>();
+  // ーーーここから変更ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+  tachiePos: number = 0;         // デフォルトのPOS（0）
+
+  // textやgameTypeと一緒に、colorとposも渡せるように拡張
+// ーーーここから修正（クラッシュ回避＆色の保存ロジック復元）ーーー
+  get character(): GameCharacter | null {
+    let object = ObjectStore.instance.get(this.sendFrom);
+    // PeerCursor（プレイヤー自身）などが混ざってクラッシュしないよう、GameCharacter型か厳密にチェックします
+    return object instanceof GameCharacter ? object : null;
+  }
+
+  // ーーーリリィ互換：色の保存・取得ーーー
+// ーーーリリィ互換：色の保存・取得（完全独立版）ーーー
+  get chatColor(): string {
+    const char = this.character;
+    if (char) {
+      // 1. リリィ互換のオブジェクトプロパティから色を取得
+      if (char.chatColorCode && char.chatColorCode['0']) {
+        return char.chatColorCode['0'];
+      }
+      // 2. 過去の独自方式で保存したコマへの後方互換
+      if (char.detailDataElement) {
+        let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
+        if (colorElm && colorElm.value) return colorElm.value.toString();
+      }
+      // 【修正】コマを選択しているが、まだ色が未設定（新規作成時など）の場合は、
+      // プレイヤー個人の色を呼ばずに、デフォルトの黒（#000000）を返す。
+      return '#000000';
+    }
+    
+    // コマを選択していない（プレイヤー自身としての発言）場合のみ、ブラウザ保存の色を呼ぶ
+    return localStorage.getItem('myChatColor') || '#000000';
+  }
+
+  set chatColor(color: string) {
+    const char = this.character;
+    if (char) {
+      // リリィ互換のオブジェクトプロパティに色を保存
+      if (!char.chatColorCode) {
+        char.chatColorCode = { '0': '', '1': '', '2': '' };
+      }
+      char.chatColorCode['0'] = color;
+    } else {
+      localStorage.setItem('myChatColor', color);
+    }
+  }
+//   // キャラクターの色を保存・取得するロジック
+//   get chatColor(): string {
+//     const char = this.character;
+//     if (char && char.detailDataElement) {
+//       let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
+//       return colorElm && colorElm.value ? colorElm.value.toString() : '#000000';
+//     }
+//     return localStorage.getItem('myChatColor') || '#000000'; // コマ未選択時はプレイヤー毎に保存
+//   }
+
+// set chatColor(color: string) {
+//     const char = this.character;
+//     if (char && char.detailDataElement) {
+//       let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
+//       if (!colorElm) {
+//         // 修正：引数なしで生成し、プロパティとして名前と色を設定します
+//         colorElm = new DataElement();
+//         colorElm.name = 'chatColor';
+//         colorElm.value = color;
+//         char.detailDataElement.appendChild(colorElm);
+//       } else {
+//         colorElm.value = color;
+//       }
+//     } else {
+//       localStorage.setItem('myChatColor', color);
+//     }
+//   }
+
+  // 立ち絵リストを抽出するロジック
+  // ーーーリリィ互換：立ち絵リストの抽出ーーー
+  get tachieElements(): DataElement[] {
+    const char = this.character;
+    if (!char || !char.imageDataElement) return [];
+    // フォルダを探すのではなく、直接並んでいる 'imageIdentifier' を全て取得する
+    return char.imageDataElement.children.filter(e => (e as DataElement).name === 'imageIdentifier') as DataElement[];
+  }
+  _tachieIndex: number = 0;
+  get tachieIndex(): number {
+    const max = this.maxTachieIndex;
+    return this._tachieIndex > max ? max : this._tachieIndex;
+  }
+  set tachieIndex(val: number) { this._tachieIndex = val; }
+
+  get maxTachieIndex(): number {
+    return Math.max(0, this.tachieElements.length - 1);
+  }
+
+  get currentTachieName(): string {
+    const elements = this.tachieElements;
+    if (elements.length === 0) return '基本画像';
+    // リリィ版は name ではなく currentValue に差分名が保存される
+    return elements[this.tachieIndex]?.currentValue?.toString() || `差分${this.tachieIndex}`;
+  }
+// ーーー変更：純粋に立ち絵フォルダのみを参照するように修正ーーー
+  // get tachieElements(): DataElement[] {
+  //   const char = this.character;
+  //   if (!char || !char.imageDataElement) return [];
+    
+  //   // 立ち絵ルート要素（フォルダ）のみを探す
+  //   const root = char.imageDataElement.getFirstElementByName('tachie')
+  //             || char.detailDataElement?.getFirstElementByName('tachie');
+              
+  //   // フォルダがあればその中身を、なければ空の配列を返す（コマ本体の画像を無理やり混ぜない）
+  //   if (root) return root.children as DataElement[];
+  //   return [];
+  // }
+  // ーーーここまで変更ーーー
+
+  // _tachieIndex: number = 0;
+  // get tachieIndex(): number {
+  //   const max = this.maxTachieIndex;
+  //   return this._tachieIndex > max ? max : this._tachieIndex;
+  // }
+  // set tachieIndex(val: number) { this._tachieIndex = val; }
+
+  // get maxTachieIndex(): number {
+  //   return Math.max(0, this.tachieElements.length - 1);
+  // }
+
+  // get currentTachieName(): string {
+  //   const elements = this.tachieElements;
+  //   if (elements.length === 0) return '基本画像';
+  //   return elements[this.tachieIndex]?.name?.toString() || `差分${this.tachieIndex}`;
+  // }
+
+  // 送信イベントに立ち絵ID（tachieId）を追加
+  @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }>();
+  // ーーーここまで追加・変更ーーー
+  // @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string, color: string, pos: number }>();
+  // ーーーここまで変更ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+
+  // @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string }>();
 
   get isDirect(): boolean { return this.sendTo != null && this.sendTo.length ? true : false }
   gameHelp: string = '';
 
+  //書き換え
   get imageFile(): ImageFile {
     let object = ObjectStore.instance.get(this.sendFrom);
     let image: ImageFile = null;
     if (object instanceof GameCharacter) {
-      image = object.imageFile;
+      const elements = this.tachieElements;
+      // スライダーで選ばれた立ち絵があればそれを表示
+      if (elements.length > 0 && this.tachieIndex < elements.length) {
+        image = ImageStorage.instance.get(elements[this.tachieIndex].value as string);
+      }
+      if (!image) image = object.imageFile; // なければ基本画像
     } else if (object instanceof PeerCursor) {
       image = object.image;
     }
     return image ? image : ImageFile.Empty;
   }
+  // get imageFile(): ImageFile {
+  //   let object = ObjectStore.instance.get(this.sendFrom);
+  //   let image: ImageFile = null;
+  //   if (object instanceof GameCharacter) {
+  //     image = object.imageFile;
+  //   } else if (object instanceof PeerCursor) {
+  //     image = object.image;
+  //   }
+  //   return image ? image : ImageFile.Empty;
+  // }
 
   private shouldUpdateCharacterList: boolean = true;
   private _gameCharacters: GameCharacter[] = [];
@@ -169,19 +325,47 @@ export class ChatInputComponent implements OnInit, OnDestroy {
 
   sendChat(event: Partial<KeyboardEvent>) {
     if (event) event.preventDefault();
-
     if (!this.text.length) return;
     if (event && event.keyCode !== 13) return;
 
     if (!this.sendFrom.length) this.sendFrom = this.myPeer.identifier;
-    this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo });
 
+    // 選択中の立ち絵IDを取得して送信データに乗せる
+    let selectedTachieId = '';
+    if (this.character) {
+       const elements = this.tachieElements;
+       if (elements.length > 0 && this.tachieIndex < elements.length) {
+         selectedTachieId = elements[this.tachieIndex].value as string;
+       } else if (this.character.imageFile) {
+         selectedTachieId = this.character.imageFile.identifier;
+       }
+    } else if (this.myPeer) {
+       selectedTachieId = this.myPeer.imageIdentifier;
+    }
+
+    this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo, color: this.chatColor, tachieId: selectedTachieId });
     this.text = '';
-    this.previousWritingLength = this.text.length;
-    let textArea: HTMLTextAreaElement = this.textAreaElementRef.nativeElement;
-    textArea.value = '';
-    this.calcFitHeight();
   }
+  // sendChat(event: Partial<KeyboardEvent>) {
+  //   if (event) event.preventDefault();
+
+  //   if (!this.text.length) return;
+  //   if (event && event.keyCode !== 13) return;
+
+  //   if (!this.sendFrom.length) this.sendFrom = this.myPeer.identifier;
+
+    
+  //   // ーーーここを変更（colorとposを追加）ーーー
+  //   this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo, color: this.chatColor, pos: this.tachiePos });
+  //   // ーーーここまで変更ーーー
+  //   //this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo });
+
+  //   this.text = '';
+  //   this.previousWritingLength = this.text.length;
+  //   let textArea: HTMLTextAreaElement = this.textAreaElementRef.nativeElement;
+  //   textArea.value = '';
+  //   this.calcFitHeight();
+  // }
 
   calcFitHeight() {
     let textArea: HTMLTextAreaElement = this.textAreaElementRef.nativeElement;

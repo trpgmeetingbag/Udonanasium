@@ -35,6 +35,34 @@ export class ChatMessage extends ObjectNode implements ChatMessageContext {
     let num = timestamp ? +timestamp : 0;
     return Number.isNaN(num) ? 1 : num;
   }
+
+// --- 立ち絵・色拡張用のゲッターとセッター（理想のXML構造に合わせた修正版） ---
+  
+  // テキスト色 (XML属性: messColor)
+  get color(): string { return this.getAttribute('messColor'); }
+  set color(color: string) { this.setAttribute('messColor', color); }
+
+  // 立ち絵の表示位置 (XML属性: imagePos)
+  get tachiePos(): number {
+    const pos = this.getAttribute('imagePos');
+    return pos ? Number(pos) : 0; 
+  }
+  set tachiePos(tachiePos: number) { this.setAttribute('imagePos', tachiePos.toString()); }
+  
+  // 送信元キャラクターの識別子 (XML属性: sendFrom)
+  get sendFromChar(): string { return this.getAttribute('sendFrom'); }
+  set sendFromChar(sendFrom: string) { this.setAttribute('sendFrom', sendFrom); }
+
+  // 立ち絵の画像ID (XML属性: imageIdentifier は既存の仕組みに既に存在するため、ここではヘルパーのみ記述します)
+  get imageUrl(): string {
+    const id = this.imageIdentifier; // 既存の imageIdentifier プロパティを使用
+    if (!id) return '';
+    const file = ImageStorage.instance.get(id);
+    return file ? file.url : '';
+  }
+
+  // ----------------- ↑ここまで追加分↑ -------------------
+
   private _to: string;
   private _sendTo: string[] = [];
   get sendTo(): string[] {
