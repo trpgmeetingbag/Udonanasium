@@ -1,10 +1,19 @@
 import { ChatTab } from './chat-tab';
-import { SyncObject } from './core/synchronize-object/decorator';
+import { SyncObject, SyncVar } from './core/synchronize-object/decorator';
 import { ObjectNode } from './core/synchronize-object/object-node';
 import { InnerXml } from './core/synchronize-object/object-serializer';
 
 @SyncObject('chat-tab-list')
 export class ChatTabList extends ObjectNode implements InnerXml {
+
+  // ーーーここから追加（リリィ互換の立ち絵全体設定）ーーー
+  @SyncVar() tachieHeightValue: number = 400;
+  
+  minTachieSize: number = 100;
+  maxTachieSize: number = 1000;
+  isTachieInWindow: boolean = true;
+  // ーーー追加ここまでーーー
+  
   private static _instance: ChatTabList;
   static get instance(): ChatTabList {
     if (!ChatTabList._instance) {

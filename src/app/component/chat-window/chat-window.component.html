@@ -1,10 +1,20 @@
 <!--<h2>チャットシステム</h2>-->
 <div class="component">
-<div class="log">
+
+  <chat-tachie-img *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie-img>
+
+  <div class="log">
+    <chat-tab *ngIf="chatTab" [chatTab]="chatTab" (onAddMessage)="scrollToBottom()"></chat-tab>
+    <div *ngIf="!chatTab">※チャットタブの内容が更新されました。チャットタブを選択しなおすか、このチャットウィンドウを開きなおしてください。</div>
+  </div>
+  
+  <div class="sticky-bottom">
+    <chat-tachie *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie>
+<!-- <div class="log">
   <chat-tab *ngIf="chatTab" [chatTab]="chatTab" (onAddMessage)="scrollToBottom()"></chat-tab>
   <div *ngIf="!chatTab">※チャットタブの内容が更新されました。チャットタブを選択しなおすか、このチャットウィンドウを開きなおしてください。</div>
 </div>
-<div class="sticky-bottom">
+<div class="sticky-bottom"> -->
   <form>
     <div class="chat-tab">
       <label *ngFor="let chatTab of chatMessageService.chatTabs; trackBy: trackByChatTab">

@@ -7,6 +7,22 @@ import { EventSystem } from './core/system';
 @SyncObject('chat-tab')
 export class ChatTab extends ObjectNode implements InnerXml {
   @SyncVar() name: string = 'タブ';
+
+// ーーーここから追加（リリィ互換の立ち絵データ枠）ーーー
+  @SyncVar() tachieDispFlag: boolean = true;
+  @SyncVar() chatSimpleDispFlag: boolean = false;
+  // XML保存時に枠が消滅するのを防ぐため、リリィに倣って半角スペースを初期値にします
+  @SyncVar() imageIdentifier: string[] = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '];
+
+  tachiePosHide(pos: number) {
+    if (pos >= 0 && pos < 12) {
+      let newIdentifiers = this.imageIdentifier.slice();
+      newIdentifiers[pos] = ' '; // 消す時も空文字ではなく半角スペースで上書きします
+      this.imageIdentifier = newIdentifiers;
+    }
+  }
+  // ーーー追加ここまでーーー
+
   get chatMessages(): ChatMessage[] { return <ChatMessage[]>this.children; }
 
   private _unreadLength: number = 0;

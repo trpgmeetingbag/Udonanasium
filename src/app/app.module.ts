@@ -55,6 +55,9 @@ import { TabletopService } from 'service/tabletop.service';
 
 import { AppComponent } from './app.component';
 
+import { ChatTachieComponent } from './component/chat-tachie/chat-tachie.component';
+import { ChatTachieImageComponent } from './component/chat-tachie-img/chat-tachie-img.component';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -99,6 +102,8 @@ import { AppComponent } from './app.component';
     DraggableDirective,
     ResizableDirective,
     ChatInputComponent,
+    ChatTachieComponent, // 追加
+    ChatTachieImageComponent, // 追加
   ],
   imports: [
     BrowserModule,

@@ -1,0 +1,27 @@
+.chat-tachie-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tachie-area {
+  position: relative;
+  width: 100%;
+  transition: height 0.3s ease; /* 表示ON/OFF時に滑らかに空間を開閉する */
+}
+
+.tachie-controls {
+  font-size: 12px;
+  padding: 4px;
+  background-color: #333;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid #555;
+}
+
+.size-input {
+  width: 60px;
+  color: black;
+}

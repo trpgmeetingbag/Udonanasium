@@ -92,7 +92,51 @@ sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, 
       message.setAttribute('messColor', color);
       message.setAttribute('sendFrom', sendFrom);
       // POSは後のフェーズでキャラクターデータから直接読み取るため、ここでは一旦0固定で保存します
-      message.setAttribute('imagePos', '0');
+      //message.setAttribute('imagePos', '0');
+
+      // ーーーここから追加（立ち絵の表示更新ロジック）ーーー
+      let charObj = ObjectStore.instance.get(sendFrom);
+      if (charObj instanceof GameCharacter) {
+        let pos = 0;
+        
+        // 1. POSの取得（現在値 currentValue を優先して取得）
+        if (charObj.detailDataElement) {
+          let posElement = charObj.detailDataElement.getFirstElementByName('POS');
+          if (posElement) {
+            let currentValue = posElement.currentValue;
+            let posStr = (currentValue !== undefined && currentValue !== null && currentValue !== '') 
+                         ? currentValue.toString() 
+                         : posElement.value.toString();
+            pos = parseInt(posStr, 10);
+          }
+        }
+        if (isNaN(pos)) pos = 0;
+
+        // 2. 現在の画像IDの取得（立ち絵変更に対応するため、currentValueを優先）
+        let imageIdentifier = '';
+        let imageElement = charObj.imageDataElement ? charObj.imageDataElement.getFirstElementByName('imageIdentifier') : null;
+        if (imageElement) {
+           imageIdentifier = (imageElement.currentValue !== undefined && imageElement.currentValue !== null && imageElement.currentValue !== '') 
+                             ? imageElement.currentValue.toString() 
+                             : imageElement.value.toString();
+        } else if (charObj.imageFile) {
+           imageIdentifier = charObj.imageFile.identifier; // 取得できない場合の保険
+        }
+
+        // 3. ChatTabの立ち絵スロットを上書き更新
+        if (imageIdentifier && pos >= 0 && pos < 12) {
+          // 古いセーブデータ対策（配列が存在しない場合は初期化）
+          if (!chatTab.imageIdentifier) {
+            chatTab.imageIdentifier = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '];
+          }
+          // 配列を新しく作り直してセットすることで、ユドナリウムの同期システムに変更を検知させます
+          let newIdentifiers = chatTab.imageIdentifier.slice();
+          newIdentifiers[pos] = imageIdentifier;
+          chatTab.imageIdentifier = newIdentifiers; 
+        }
+      }
+      // ーーー追加ここまでーーー
+
     }
     return message;
   }

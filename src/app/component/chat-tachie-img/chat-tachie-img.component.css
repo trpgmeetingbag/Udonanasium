@@ -1,0 +1,18 @@
+.tachie-image-box {
+  position: relative; /* ★最重要：absoluteをやめ、実体のある空間にする */
+  width: 100%;
+  transition: height 0.3s ease; /* ON/OFFした時にスルッと空間が開閉します */
+  flex-shrink: 0; /* チャットログが増えても、この空間は絶対に潰されないようにする */
+}
+
+.tachie-image {
+  position: absolute;
+  bottom: 0; /* 確保した空間の「底面（＝チャットログの上辺）」にキャラクターの足を合わせる */
+  transform: translateX(-50%);
+  pointer-events: auto;
+  cursor: pointer;
+  object-fit: contain;
+  filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.5));
+  vertical-align: bottom;
+  transition: left 0.3s ease, height 0.3s ease;
+}
