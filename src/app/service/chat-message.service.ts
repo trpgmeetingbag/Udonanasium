@@ -100,12 +100,15 @@ sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, 
         let pos = 0;
         
 // --- START: スライダーの選択（tachieId）を最優先で反映する処理 ---
-        // 1. POSの取得（シートの tachie -> tachiePosition から取得）
-        let tachieRoot = charObj.detailDataElement ? charObj.detailDataElement.getFirstElementByName('tachie') : null;
+// --- START: POS取得処理の修正（リリィ互換の新しい階層に合わせる） ---
+        // 1. POSの取得（シートの 立ち絵位置 -> POS から取得）
+        let tachieRoot = charObj.detailDataElement ? charObj.detailDataElement.getFirstElementByName('立ち絵位置') : null;
         if (tachieRoot) {
-          let posElement = tachieRoot.getFirstElementByName('tachiePosition');
+          let posElement = tachieRoot.getFirstElementByName('POS');
           if (posElement) {
-            pos = parseInt(posElement.value.toString(), 10);
+            // numberResourceのため、currentValue（現在値）を優先的に取得します
+            let posValue = posElement.currentValue !== undefined ? posElement.currentValue : posElement.value;
+            pos = parseInt(posValue.toString(), 10);
           }
         }
         if (isNaN(pos)) pos = 0;
