@@ -15,6 +15,12 @@
   align-content: space-between;
 }
 
+/* --- START: チャットログの箱をウィンドウ全体に広げる修正 --- */
+.log {
+  flex-grow: 1;
+}
+/* --- END --- */
+
 .sticky-bottom {
   position: sticky;
   bottom : 0;

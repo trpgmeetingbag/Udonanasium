@@ -124,12 +124,16 @@ export class ChatInputComponent implements OnInit, OnDestroy {
 
   // 立ち絵リストを抽出するロジック
   // ーーーリリィ互換：立ち絵リストの抽出ーーー
+// --- START: 立ち絵リストを専用フォルダから取得するように修正 ---
   get tachieElements(): DataElement[] {
     const char = this.character;
     if (!char || !char.imageDataElement) return [];
-    // フォルダを探すのではなく、直接並んでいる 'imageIdentifier' を全て取得する
-    return char.imageDataElement.children.filter(e => (e as DataElement).name === 'imageIdentifier') as DataElement[];
+    
+    // 独立した 'tachie' フォルダを探し、その中の画像を取得する
+    let root = char.imageDataElement.getFirstElementByName('tachie');
+    return root ? (root.children as DataElement[]).filter(e => e.type === 'image') : [];
   }
+// --- END ---
   _tachieIndex: number = 0;
   get tachieIndex(): number {
     const max = this.maxTachieIndex;

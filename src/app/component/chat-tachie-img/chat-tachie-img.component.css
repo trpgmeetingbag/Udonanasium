@@ -1,13 +1,24 @@
-.tachie-image-box {
-  position: relative; /* ★最重要：absoluteをやめ、実体のある空間にする */
+/* お引越し後のレイヤー設定 */
+.tachie-layer {
+  position: absolute;
+  top: 0; /* お引越し先（draggable-panel）の一番上（タイトルバーの上辺）に合わせる */
+  left: 0;
   width: 100%;
-  transition: height 0.3s ease; /* ON/OFFした時にスルッと空間が開閉します */
-  flex-shrink: 0; /* チャットログが増えても、この空間は絶対に潰されないようにする */
+  height: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.tachie-image-box {
+  position: relative;
+  width: 100%;
+  height: 0;
+  overflow: visible;
 }
 
 .tachie-image {
   position: absolute;
-  bottom: 0; /* 確保した空間の「底面（＝チャットログの上辺）」にキャラクターの足を合わせる */
+  bottom: 0; /* レイヤーの底面に画像の足を合わせる＝ウィンドウの上にニョキッと生える！ */
   transform: translateX(-50%);
   pointer-events: auto;
   cursor: pointer;

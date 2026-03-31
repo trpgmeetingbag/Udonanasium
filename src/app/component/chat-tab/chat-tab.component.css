@@ -6,7 +6,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+/* --- START: チャットログを上寄せにする修正 --- */
+  justify-content: flex-start;
+/* --- END --- */
   align-items: flex-end;
   width: 100%;
   height: 100%;

@@ -99,29 +99,30 @@ sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, 
       if (charObj instanceof GameCharacter) {
         let pos = 0;
         
-        // 1. POSの取得（現在値 currentValue を優先して取得）
-        if (charObj.detailDataElement) {
-          let posElement = charObj.detailDataElement.getFirstElementByName('POS');
+// --- START: スライダーの選択（tachieId）を最優先で反映する処理 ---
+        // 1. POSの取得（シートの tachie -> tachiePosition から取得）
+        let tachieRoot = charObj.detailDataElement ? charObj.detailDataElement.getFirstElementByName('tachie') : null;
+        if (tachieRoot) {
+          let posElement = tachieRoot.getFirstElementByName('tachiePosition');
           if (posElement) {
-            let currentValue = posElement.currentValue;
-            let posStr = (currentValue !== undefined && currentValue !== null && currentValue !== '') 
-                         ? currentValue.toString() 
-                         : posElement.value.toString();
-            pos = parseInt(posStr, 10);
+            pos = parseInt(posElement.value.toString(), 10);
           }
         }
         if (isNaN(pos)) pos = 0;
 
-        // 2. 現在の画像IDの取得（立ち絵変更に対応するため、currentValueを優先）
-        let imageIdentifier = '';
-        let imageElement = charObj.imageDataElement ? charObj.imageDataElement.getFirstElementByName('imageIdentifier') : null;
-        if (imageElement) {
-           imageIdentifier = (imageElement.currentValue !== undefined && imageElement.currentValue !== null && imageElement.currentValue !== '') 
-                             ? imageElement.currentValue.toString() 
-                             : imageElement.value.toString();
-        } else if (charObj.imageFile) {
-           imageIdentifier = charObj.imageFile.identifier; // 取得できない場合の保険
+        // 2. 画像IDの取得（チャット入力欄のスライダーから渡された tachieId を最優先）
+        let imageIdentifier = tachieId;
+        
+        // スライダーからの指定がない場合は、現在のコマ画像を使用
+        if (!imageIdentifier) {
+          let imageElement = charObj.imageDataElement ? charObj.imageDataElement.getFirstElementByName('imageIdentifier') : null;
+          if (imageElement) {
+             imageIdentifier = imageElement.value ? imageElement.value.toString() : '';
+          } else if (charObj.imageFile) {
+             imageIdentifier = charObj.imageFile.identifier;
+          }
         }
+// --- END ---
 
         // 3. ChatTabの立ち絵スロットを上書き更新
         if (imageIdentifier && pos >= 0 && pos < 12) {

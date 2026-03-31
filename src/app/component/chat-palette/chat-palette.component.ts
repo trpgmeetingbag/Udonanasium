@@ -104,12 +104,15 @@ export class ChatPaletteComponent implements OnInit, OnDestroy {
     }
   }
 
-  sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string }) {
+// --- START: チャットパレットからの送信に色と立ち絵ID（tachieId）を含める修正 ---
+  sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }) {
     if (this.chatTab) {
       let text = this.palette.evaluate(value.text, this.character.rootDataElement);
-      this.chatMessageService.sendMessage(this.chatTab, text, value.gameType, value.sendFrom, value.sendTo);
+      // 受け取った color と tachieId を sendMessage の引数として末尾に追加してリレーする
+      this.chatMessageService.sendMessage(this.chatTab, text, value.gameType, value.sendFrom, value.sendTo, value.color, value.tachieId);
     }
   }
+// --- END ---
 
   resetPletteSelect() {
     if (!this.chatPletteElementRef.nativeElement) return;

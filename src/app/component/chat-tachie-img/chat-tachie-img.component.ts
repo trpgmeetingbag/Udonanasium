@@ -1,5 +1,4 @@
-
-import { Component, Input, ElementRef, AfterViewInit } from '@angular/core'; // ←修正
+import { Component, Input, ElementRef, AfterViewInit, OnDestroy, ViewChild } from '@angular/core';
 import { ChatTab } from '@udonarium/chat-tab';
 import { ChatTabList } from '@udonarium/chat-tab-list';
 import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
@@ -10,22 +9,31 @@ import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
   templateUrl: './chat-tachie-img.component.html',
   styleUrls: ['./chat-tachie-img.component.css']
 })
-export class ChatTachieImageComponent {
+export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
   @Input() chatTabidentifier: string = '';
+  
+  // HTML側で作るお引越し用のレイヤーを捕まえます
+  @ViewChild('tachieLayer', { static: true }) layerRef: ElementRef;
   posArray: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-  //外枠押出のため消去
-  // // ←ここから追加（ElementRefを使えるようにします）
-  // constructor(private elementRef: ElementRef) {}
+  constructor(private elementRef: ElementRef) {}
 
-  // ngAfterViewInit() {
-  //   // 立ち絵がウィンドウの外側（上方向）に飛び出せるよう、親パネルの切り取り設定を解除します
-  //   setTimeout(() => {
-  //     const panel = this.elementRef.nativeElement.closest('.panel') as HTMLElement;
-  //     if (panel) panel.style.overflow = 'visible';
-  //   }, 100);
-  // }
-  // // ←追加ここまで
+  // 画面描画後、真のギロチン（scrollable-panel）から脱出し、大枠（draggable-panel）の直下へお引越しします
+  ngAfterViewInit() {
+    setTimeout(() => {
+      const panel = this.elementRef.nativeElement.closest('.draggable-panel');
+      if (panel && this.layerRef) {
+        panel.appendChild(this.layerRef.nativeElement);
+      }
+    }, 100);
+  }
+
+  // ウィンドウが閉じた時は、お引越し先からレイヤーを綺麗にお掃除します
+  ngOnDestroy() {
+    if (this.layerRef && this.layerRef.nativeElement.parentElement) {
+      this.layerRef.nativeElement.parentElement.removeChild(this.layerRef.nativeElement);
+    }
+  }
 
   get chatTab(): ChatTab {
     return ObjectStore.instance.get<ChatTab>(this.chatTabidentifier);
@@ -35,21 +43,26 @@ export class ChatTachieImageComponent {
     return ChatTabList.instance;
   }
 
-  // ★追加：立ち絵表示がONの時だけ、設定された高さの数値を返す
-  get tachieAreaHeight(): number {
-    if (this.chatTab && this.chatTab.tachieDispFlag) {
-      return this.chatTabList.tachieHeightValue;
-    }
-    return 0;
-  }
   // 指定されたPOSの画像URLを取得
   getImageUrl(pos: number): string {
     if (!this.chatTab || !this.chatTab.imageIdentifier) return '';
     let identifier = this.chatTab.imageIdentifier[pos];
-    if (!identifier || identifier === ' ') return ''; // 空や半角スペースなら表示しない
+    if (!identifier || identifier === ' ') return '';
     let image = ImageStorage.instance.get(identifier);
     return image ? image.url : '';
   }
+
+  // --- START: 立ち絵の等間隔配置と両端の調整 ---
+  getLeftStyle(pos: number): string {
+    return `${(pos / 11) * 100}%`;
+  }
+
+  getTransformStyle(pos: number): string {
+    // posが0の時は左端(0%)、11の時は右端(-100%)へスライドさせ、枠外へのはみ出しを防ぐ
+    const shift = (pos / 11) * -100;
+    return `translateX(${shift}%)`;
+  }
+// --- END ---
 
   // 画像クリックでそのPOSの立ち絵を消す
   tachieClick(pos: number) {
