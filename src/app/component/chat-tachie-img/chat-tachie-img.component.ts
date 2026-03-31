@@ -43,6 +43,16 @@ export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
     return ChatTabList.instance;
   }
 
+  // --- START: アクティブな立ち絵POSの取得ロジック ---
+  // 現在アクティブ（不透明）にすべきPOS番号を取得します。誰も発言していない初期状態などは -1 を返します。
+  get activePos(): number {
+    if (!this.chatTab) return -1;
+    const posStr = this.chatTab.getAttribute('activeTachiePos');
+    return posStr ? parseInt(posStr, 10) : -1;
+  }
+  // --- END ---
+
+  
   // 指定されたPOSの画像URLを取得
   getImageUrl(pos: number): string {
     if (!this.chatTab || !this.chatTab.imageIdentifier) return '';

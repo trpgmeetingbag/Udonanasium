@@ -134,6 +134,11 @@ sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, 
           let newIdentifiers = chatTab.imageIdentifier.slice();
           newIdentifiers[pos] = imageIdentifier;
           chatTab.imageIdentifier = newIdentifiers; 
+
+          // --- START: 最後に更新された立ち絵のPOSを同期データとして記録する ---
+          chatTab.setAttribute('activeTachiePos', pos.toString());
+          // --- END ---
+          
         }
       }
       // ーーー追加ここまでーーー
