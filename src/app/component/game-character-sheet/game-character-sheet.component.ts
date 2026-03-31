@@ -160,43 +160,65 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     return root;
   }
 
-  get tachiePosition(): number {
-    const root = this.tachieRootElement;
+get tachiePosition(): number {
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return 0;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('立ち絵位置');
     if (!root) return 0;
-    const posElement = root.getFirstElementByName('tachiePosition');
+    let posElement = root.getFirstElementByName('POS');
     if (!posElement) return 0;
-    return Number(posElement.value) || 0;
+    // currentValue（現在値）を優先して読み取る
+    return posElement.currentValue !== undefined ? Number(posElement.currentValue) : Number(posElement.value);
   }
+  // get tachiePosition(): number {
+  //   const root = this.tachieRootElement;
+  //   if (!root) return 0;
+  //   const posElement = root.getFirstElementByName('tachiePosition');
+  //   if (!posElement) return 0;
+  //   return Number(posElement.value) || 0;
+  // }
 
   set tachiePosition(value: number) {
-    const root = this.tachieRootElement;
-    if (!root) return;
-    const posElement = root.getFirstElementByName('tachiePosition');
-    if (posElement) {
-      posElement.value = value;
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('立ち絵位置');
+    if (!root) {
+      root = DataElement.create('立ち絵位置', '', {}, '立ち絵位置_' + this.tabletopObject.identifier);
+      this.tabletopObject.detailDataElement.appendChild(root);
+    }
+    let posElement = root.getFirstElementByName('POS');
+    if (!posElement) {
+      // 新規作成時は、最大値(value)を11、現在値(currentValue)をスライダーの値に設定
+      posElement = DataElement.create('POS', 11, { type: 'numberResource', currentValue: value.toString() }, 'POS_' + this.tabletopObject.identifier);
+      root.appendChild(posElement);
+    } else {
+      // 更新時は現在値のみを変更し、最大値は常に11に固定する
+      posElement.currentValue = value;
+      posElement.value = 11; 
     }
   }
+  // set tachiePosition(value: number) {
+  //   const root = this.tachieRootElement;
+  //   if (!root) return;
+  //   const posElement = root.getFirstElementByName('tachiePosition');
+  //   if (posElement) {
+  //     posElement.value = value;
+  //   }
+  // }
 
 // ーーーリリィ互換：シート側も imageIdentifier を全て取得ーーー
-// --- START: 立ち絵とコマ画像の切り離し (1/3) ---
-  get tachieElements(): DataElement[] {
+
+get tachieElements(): DataElement[] {
     if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return [];
-    // 独立した tachie フォルダからのみ画像を取得するよう修正
-    let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
-    return root ? (root.children as DataElement[]).filter(e => e.type === 'image') : [];
+    // リリィ互換：imageDataElement 直下にある 'imageIdentifier' 要素をすべて取得
+    return this.tabletopObject.imageDataElement.children.filter(e => (e as DataElement).name === 'imageIdentifier') as DataElement[];
   }
-// --- END ---
-  // ーーー変更1：シート側も純粋なリスト参照に統一ーーー
+// --- START: 立ち絵とコマ画像の切り離し (1/3) ---
   // get tachieElements(): DataElement[] {
   //   if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return [];
-  //   const root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
-  //   return root ? root.children as DataElement[] : [];
+  //   // 独立した tachie フォルダからのみ画像を取得するよう修正
+  //   let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
+  //   return root ? (root.children as DataElement[]).filter(e => e.type === 'image') : [];
   // }
-  // get tachieElements(): DataElement[] {
-  //   const root = this.tachieRootElement;
-  //   if (!root) return [];
-  //   return (root.children as DataElement[]).filter(child => child.type === 'image');
-  // }
+
 
   getTachieUrl(identifier: string | number): string {
     const image = ImageStorage.instance.get(identifier ? identifier.toString() : '');
@@ -204,24 +226,63 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
   }
 
   get iconIndex(): number {
-    if (this.tachieElements.length === 0 || !this.tabletopObject) return 0;
-    const imageElement = this.tabletopObject.imageDataElement?.getFirstElementByName('imageIdentifier');
-    if (!imageElement) return 0;
-    const index = this.tachieElements.findIndex(t => t.value === imageElement.value);
-    return index >= 0 ? index : 0;
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return 0;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('コマ画像');
+    if (!root) return 0;
+    let indexElement = root.getFirstElementByName('ICON');
+    if (!indexElement) return 0;
+    return indexElement.currentValue !== undefined ? Number(indexElement.currentValue) : Number(indexElement.value);
   }
 
-  set iconIndex(index: number) {
-    if (this.tachieElements.length > index && this.tabletopObject) {
-      const imageElement = this.tabletopObject.imageDataElement?.getFirstElementByName('imageIdentifier');
-      if (imageElement) {
-        imageElement.value = this.tachieElements[index].value;
-      }
+  set iconIndex(value: number) {
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('コマ画像');
+    if (!root) {
+      root = DataElement.create('コマ画像', '', {}, 'コマ画像_' + this.tabletopObject.identifier);
+      this.tabletopObject.detailDataElement.appendChild(root);
     }
+    
+    // コマ画像の最大値は、現在の立ち絵リストの長さに追従する
+    let maxIcon = Math.max(0, this.tachieElements.length - 1);
+    let indexElement = root.getFirstElementByName('ICON');
+    
+    if (!indexElement) {
+      indexElement = DataElement.create('ICON', maxIcon, { type: 'numberResource', currentValue: value.toString() }, 'ICON_' + this.tabletopObject.identifier);
+      root.appendChild(indexElement);
+    } else {
+      // 現在値を更新し、最大値を立ち絵リストの数に合わせる
+      indexElement.currentValue = value;
+      indexElement.value = maxIcon;
+    }
+    
+    if (this.tabletopObject) this.tabletopObject.update();
   }
+// // --- START: スライダー操作時に盤面の表示を即座に更新する修正 ---
+//   get iconIndex(): number {
+//     const root = this.tachieRootElement;
+//     if (!root) return 0;
+//     const indexElement = root.getFirstElementByName('iconIndex');
+//     return indexElement ? Number(indexElement.value) : 0;
+//   }
 
-  // ーーー変更2：画像変更時に、0番目ならコマ画像も同期するーーー
-// --- START: 立ち絵とコマ画像の切り離し (2/3) ---
+//   set iconIndex(value: number) {
+//     const root = this.tachieRootElement;
+//     if (root) {
+//       let indexElement = root.getFirstElementByName('iconIndex');
+//       if (!indexElement) {
+//         indexElement = DataElement.create('iconIndex', 0, { type: 'number' });
+//         root.appendChild(indexElement);
+//       }
+//       indexElement.value = value;
+      
+//       // スライダーの値を書き換えた後、キャラクター本体に更新を通知します。
+//       // これにより、盤面上のコマが imageFile を読み直し、表示が即座に反映されます。
+//       if (this.tabletopObject) this.tabletopObject.update();
+//     }
+//   }
+// --- END ---
+
+
   openTachieImageModal(targetTachie?: DataElement) {
     this.panelService.open(FileSelecterComponent, {
       width: 400,
@@ -234,12 +295,7 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
       if (event.data && event.data.fileIdentifier) {
         if (targetTachie) {
           targetTachie.value = event.data.fileIdentifier;
-          
-          // 変更した立ち絵が0番目（基本画像）だった場合、盤面のコマ画像も同期する
-          if (this.tachieElements.indexOf(targetTachie) === 0) {
-            const baseImage = this.tabletopObject.imageDataElement?.getFirstElementByName('imageIdentifier');
-            if (baseImage) baseImage.value = event.data.fileIdentifier;
-          }
+          // ここでの同期処理（0番目なら盤面も変える等）を削除し、完全に独立させます
         } else {
           this.addTachieImage(event.data.fileIdentifier);
         }
@@ -248,63 +304,102 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     });
   }
 // --- END ---
-  // openTachieImageModal(targetTachie?: DataElement) {
-  //   this.panelService.open(FileSelecterComponent, {
-  //     width: 400,
-  //     height: 600,
-  //     title: targetTachie ? '画像の変更' : '立ち絵画像の追加'
-  //   });
+//   set iconIndex(index: number) {
+//     if (this.tachieElements.length > index && this.tabletopObject) {
+//       const imageElement = this.tabletopObject.imageDataElement?.getFirstElementByName('imageIdentifier');
+//       if (imageElement) {
+//         imageElement.value = this.tachieElements[index].value;
+//       }
+//     }
+//   }
 
-  //   EventSystem.unregister(this, 'SELECT_FILE');
-  //   EventSystem.register(this).on('SELECT_FILE', event => {
-  //     if (event.data && event.data.fileIdentifier) {
-  //       if (targetTachie) {
-  //         targetTachie.value = event.data.fileIdentifier;
-  //       } else {
-  //         this.addTachieImage(event.data.fileIdentifier);
-  //       }
-  //     }
-  //     EventSystem.unregister(this, 'SELECT_FILE');
-  //   });
-  // }
+//   // ーーー変更2：画像変更時に、0番目ならコマ画像も同期するーーー
+// // --- START: 立ち絵とコマ画像の切り離し (2/3) ---
+//   openTachieImageModal(targetTachie?: DataElement) {
+//     this.panelService.open(FileSelecterComponent, {
+//       width: 400,
+//       height: 600,
+//       title: targetTachie ? '画像の変更' : '立ち絵画像の追加'
+//     });
+
+//     EventSystem.unregister(this, 'SELECT_FILE');
+//     EventSystem.register(this).on('SELECT_FILE', event => {
+//       if (event.data && event.data.fileIdentifier) {
+//         if (targetTachie) {
+//           targetTachie.value = event.data.fileIdentifier;
+          
+//           // 変更した立ち絵が0番目（基本画像）だった場合、盤面のコマ画像も同期する
+//           if (this.tachieElements.indexOf(targetTachie) === 0) {
+//             const baseImage = this.tabletopObject.imageDataElement?.getFirstElementByName('imageIdentifier');
+//             if (baseImage) baseImage.value = event.data.fileIdentifier;
+//           }
+//         } else {
+//           this.addTachieImage(event.data.fileIdentifier);
+//         }
+//       }
+//       EventSystem.unregister(this, 'SELECT_FILE');
+//     });
+//   }
+
 
 
 
 // ーーーリリィ互換：立ち絵の追加処理ーーー
-// --- START: 立ち絵追加時に専用フォルダと0番目を自動生成 ---
+
+// --- START: リリィ互換形式での立ち絵追加・削除 ---
   private addTachieImage(identifier: string) {
-    let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
+    if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return;
     
-    // 初回のみ：tachieフォルダを作り、現在のコマ画像を「基本画像」として0番目に確保する
-    if (!root) {
-      root = new DataElement();
-      root.name = 'tachie';
-      root.type = 'image';
-      this.tabletopObject.imageDataElement.appendChild(root);
-      
-      let baseImage = this.tabletopObject.imageDataElement.getFirstElementByName('imageIdentifier');
-      if (baseImage && baseImage.value) {
-        let defaultTachie = new DataElement();
-        defaultTachie.name = 'imageIdentifier';
-        defaultTachie.currentValue = '基本画像';
-        defaultTachie.value = baseImage.value;
-        defaultTachie.type = 'image';
-        root.appendChild(defaultTachie);
-      }
-    }
+    const imageRoot = this.tabletopObject.imageDataElement;
     
-    // 選択された新しい差分を追加する
+    // リリィ互換：imageDataElement 直下に 'imageIdentifier' という名前の要素を追加
     let newTachie = new DataElement();
     newTachie.name = 'imageIdentifier';
-    newTachie.currentValue = '差分' + root.children.length;
+    newTachie.currentValue = '差分' + this.tachieElements.length;
     newTachie.value = identifier;
     newTachie.type = 'image';
-    root.appendChild(newTachie);
+    imageRoot.appendChild(newTachie);
   }
 
   removeTachieImage(element: DataElement) {
-    let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
-    if (root) root.removeChild(element);
+    if (this.tabletopObject && this.tabletopObject.imageDataElement) {
+      this.tabletopObject.imageDataElement.removeChild(element);
+    }
   }
+// --- START: 立ち絵追加時に専用フォルダと0番目を自動生成 ---
+  // private addTachieImage(identifier: string) {
+  //   let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
+    
+  //   // 初回のみ：tachieフォルダを作り、現在のコマ画像を「基本画像」として0番目に確保する
+  //   if (!root) {
+  //     root = new DataElement();
+  //     root.name = 'tachie';
+  //     root.type = 'image';
+  //     this.tabletopObject.imageDataElement.appendChild(root);
+      
+  //     let baseImage = this.tabletopObject.imageDataElement.getFirstElementByName('imageIdentifier');
+  //     if (baseImage && baseImage.value) {
+  //       let defaultTachie = new DataElement();
+  //       defaultTachie.name = 'imageIdentifier';
+  //       defaultTachie.currentValue = '基本画像';
+  //       defaultTachie.value = baseImage.value;
+  //       defaultTachie.type = 'image';
+  //       root.appendChild(defaultTachie);
+  //     }
+  //   }
+    
+  //   // 選択された新しい差分を追加する
+  //   let newTachie = new DataElement();
+  //   newTachie.name = 'imageIdentifier';
+  //   newTachie.currentValue = '差分' + root.children.length;
+  //   newTachie.value = identifier;
+  //   newTachie.type = 'image';
+  //   root.appendChild(newTachie);
+  // }
+
+  // removeTachieImage(element: DataElement) {
+  //   let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
+  //   if (root) root.removeChild(element);
+  // }
 // --- END ---
 }

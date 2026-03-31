@@ -9,6 +9,8 @@ import {
   OnDestroy
 } from '@angular/core';
 import { ImageFile } from '@udonarium/core/file-storage/image-file';
+import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
+import { DataElement } from '@udonarium/data-element';
 import { EventSystem, Network } from '@udonarium/core/system';
 import { MathUtil } from '@udonarium/core/system/util/math-util';
 import { GameCharacter } from '@udonarium/game-character';
@@ -50,7 +52,45 @@ export class GameCharacterComponent implements OnChanges, OnDestroy {
 
   get name(): string { return this.gameCharacter.name; }
   get size(): number { return MathUtil.clampMin(this.gameCharacter.size); }
-  get imageFile(): ImageFile { return this.gameCharacter.imageFile; }
+
+
+// --- START: 盤面のコマ画像を動的に切り替えるロジック ---
+get imageFile(): ImageFile {
+    if (this.gameCharacter && this.gameCharacter.detailDataElement && this.gameCharacter.imageDataElement) {
+      // リリィ互換の保存先（コマ画像 -> ICON）から数値を取得
+      let komaRoot = this.gameCharacter.detailDataElement.getFirstElementByName('コマ画像');
+      if (komaRoot) {
+        let indexElement = komaRoot.getFirstElementByName('ICON');
+
+// --- START: 盤面描画時の参照先を現在値に修正 ---
+        let iconIndex = 0;
+        if (indexElement) {
+           iconIndex = indexElement.currentValue !== undefined ? Number(indexElement.currentValue) : Number(indexElement.value);
+        }
+// --- END ---
+
+        // let iconIndex = indexElement ? Number(indexElement.value) : 0;        
+        // 0以外が選ばれている場合、対応する差分画像を優先して表示する
+        if (iconIndex > 0) {
+          let images = this.gameCharacter.imageDataElement.children.filter(e => (e as DataElement).name === 'imageIdentifier');
+          if (images.length > iconIndex) {
+            let identifier = (images[iconIndex] as any).value;
+            if (identifier) {
+              let image = ImageStorage.instance.get(identifier);
+              if (image) return image;
+            }
+          }
+        }
+      }
+    }
+    // スライダーが0の場合や画像が見つからない場合は、本来の基本画像を返す
+    return this.gameCharacter.imageFile;
+  }
+// --- END ---
+  // get imageFile(): ImageFile { return this.gameCharacter.imageFile; }
+
+
+
   get rotate(): number { return this.gameCharacter.rotate; }
   set rotate(rotate: number) { this.gameCharacter.rotate = rotate; }
   get roll(): number { return this.gameCharacter.roll; }

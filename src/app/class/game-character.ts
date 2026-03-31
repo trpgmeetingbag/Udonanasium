@@ -77,6 +77,18 @@ export class GameCharacter extends TabletopObject {
     testElement.appendChild(DataElement.create('Lv9', '薙ぎ払い', {}, 'Lv9' + this.identifier));
     testElement.appendChild(DataElement.create('自動', '治癒適正', {}, '自動' + this.identifier));
 
+// --- START: リリィ互換の初期データ（立ち絵位置とコマ画像）を追加 ---
+// --- START: 初期化時にPOSの最大値を11に設定する ---
+    let tachiePosElement = DataElement.create('立ち絵位置', '', {}, '立ち絵位置' + this.identifier);
+    this.detailDataElement.appendChild(tachiePosElement);
+    // 第2引数の value を 0 から 11（最大値）へ変更
+    tachiePosElement.appendChild(DataElement.create('POS', 11, { 'type': 'numberResource', 'currentValue': '0' }, 'POS_' + this.identifier));
+
+    let komaImageElement = DataElement.create('コマ画像', '', {}, 'コマ画像' + this.identifier);
+    this.detailDataElement.appendChild(komaImageElement);
+    komaImageElement.appendChild(DataElement.create('ICON', 0, { 'type': 'numberResource', 'currentValue': '0' }, 'ICON_' + this.identifier));
+// --- END ---
+
     let domParser: DOMParser = new DOMParser();
     let gameCharacterXMLDocument: Document = domParser.parseFromString(this.rootDataElement.toXml(), 'application/xml');
 
