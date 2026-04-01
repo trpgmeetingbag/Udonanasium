@@ -33,7 +33,8 @@ export class ChatMessageService {
   // --- END ---
 
   // --- START: 瞬断対策用のプロパティを追加 ---
-  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+  // 修正：複数のタイマーを配列で保持できるように変更
+  private disconnectTimers: Map<string, NodeJS.Timeout[]> = new Map();
   // --- END ---
 
 // --- START: 入退室通知の初期化処理（NgZoneの注入） ---
@@ -42,15 +43,16 @@ export class ChatMessageService {
   }
   // --- END ---
 
-  // --- START: 入退室通知（瞬断キャンセラー搭載版） ---
+  // --- START: 入退室通知（2段階アラート・瞬断キャンセラー搭載版） ---
   private initializeSystemNotice() {
     EventSystem.register(this)
       .on('CONNECT_PEER', event => {
         const peerId = event.data.peerId;
 
-        // 瞬断からの復帰（5秒以内）だった場合、退室タイマーをキャンセルして静かに復帰させる
+        // 復帰時：30秒警告や60秒退室のタイマーが動いていれば、すべてキャンセルして静かに復帰させる
         if (this.disconnectTimers.has(peerId)) {
-          clearTimeout(this.disconnectTimers.get(peerId));
+          const timers = this.disconnectTimers.get(peerId);
+          timers.forEach(t => clearTimeout(t));
           this.disconnectTimers.delete(peerId);
           return; 
         }
@@ -71,23 +73,38 @@ export class ChatMessageService {
       })
       .on('DISCONNECT_PEER', event => {
         const peerId = event.data.peerId;
+        
+        // 念のため既存のタイマーがあれば掃除
+        if (this.disconnectTimers.has(peerId)) {
+          this.disconnectTimers.get(peerId).forEach(t => clearTimeout(t));
+        }
 
-        // 即時退室扱いにせず、5秒間の猶予を設ける
-        const timer = setTimeout(() => {
+        const peerCursor = PeerCursor.findByPeerId(peerId);
+        if (peerCursor && peerCursor.isMine) return;
+
+        const userId = peerCursor ? peerCursor.userId : peerId.substring(0, 8);
+        const name = peerCursor ? peerCursor.name : 'プレイヤー';
+
+        // ① 30秒後の「通信障害警告」タイマー
+        const warningTimer = setTimeout(() => {
+          this.ngZone.run(() => {
+            this.sendSystemNotice(`${userId}[${name}] からあなたへの接続確認信号が30秒以上受信できません。通信障害の可能性があります。`);
+          });
+        }, 30000); // 30秒
+
+        // ② 60秒後の「退室確定」タイマー
+        const logoutTimer = setTimeout(() => {
           this.disconnectTimers.delete(peerId);
           if (this.notifiedPeers.has(peerId)) this.notifiedPeers.delete(peerId);
 
           this.ngZone.run(() => {
-            const peerCursor = PeerCursor.findByPeerId(peerId);
-            if (peerCursor && peerCursor.isMine) return;
-
-            const userId = peerCursor ? peerCursor.userId : peerId.substring(0, 8);
-            const name = peerCursor ? peerCursor.name : 'プレイヤー';
+            // 既存の退室メッセージ
             this.sendSystemNotice(`${userId}[${name}]がログアウトしました。`);
           });
-        }, 5000); // 5000ミリ秒 = 5秒
+        }, 60000); // 60秒
 
-        this.disconnectTimers.set(peerId, timer);
+        // 2つのタイマーをセットで保存
+        this.disconnectTimers.set(peerId, [warningTimer, logoutTimer]);
       });
   }
   // --- END ---
