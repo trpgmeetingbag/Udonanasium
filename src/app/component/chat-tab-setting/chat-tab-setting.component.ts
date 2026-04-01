@@ -22,20 +22,28 @@ export class ChatTabSettingComponent implements OnInit, OnDestroy {
 
   get tabName(): string { return this.selectedTab.name; }
   set tabName(tabName: string) { if (this.isEditable) this.selectedTab.name = tabName; }
-
-  // --- START: システム通知フラグの取得と保存 ---
-  get isSystemNoticeTarget(): boolean {
-    if (!this.selectedTab) return false;
-    // 'systemNoticeTarget' という属性が存在し、かつ 'true' であれば通知先とする
-    return this.selectedTab.getAttribute('systemNoticeTarget') === 'true';
+// --- START: 前回の isSystemNoticeTarget を削除し、以下に書き換え ---
+  
+  // 現在のシステム通知先タブ名を取得（何も設定されていなければ一番上[0]のタブ名）
+  get systemNoticeTargetName(): string {
+    if (this.chatTabs.length === 0) return 'なし';
+    const targetTab = this.chatTabs.find(tab => tab.getAttribute('systemNoticeTarget') === 'true');
+    return targetTab ? targetTab.name : this.chatTabs[0].name;
   }
 
-  set isSystemNoticeTarget(isTarget: boolean) {
-    if (this.isEditable && this.selectedTab) {
-      // 属性値を更新して全プレイヤーと同期する
-      this.selectedTab.setAttribute('systemNoticeTarget', isTarget ? 'true' : 'false');
-    }
+  // 選択中のタブをシステム通知先に指定する（排他制御）
+  setSystemNoticeTarget() {
+    if (!this.selectedTab || !this.isEditable) return;
+    
+    // 一度すべてのタブのフラグを解除する
+    this.chatTabs.forEach(tab => {
+      tab.setAttribute('systemNoticeTarget', 'false');
+    });
+    
+    // 現在選択中のタブにのみフラグを立てる
+    this.selectedTab.setAttribute('systemNoticeTarget', 'true');
   }
+  
   // --- END ---
 
   get chatTabs(): ChatTab[] { return this.chatMessageService.chatTabs; }

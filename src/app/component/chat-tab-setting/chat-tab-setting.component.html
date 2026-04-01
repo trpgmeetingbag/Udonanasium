@@ -6,6 +6,15 @@
     <select #select style="width: 10em;" size="10" (change)="onChangeSelectTab(select.value)" [ngModel]="selectedTab?.identifier">
       <option *ngFor="let chatTab of chatTabs" value="{{chatTab.identifier}}">{{chatTab.name}}</option>
     </select>
+
+    <div style="margin-top: 8px;">
+      <button (click)="setSystemNoticeTarget()" [disabled]="!selectedTab">システム表示先指定</button>
+      <div style="margin-top: 4px; font-size: 14px;">
+        現在システム表示先：<br>
+        <strong>{{ systemNoticeTargetName }}</strong>
+      </div>
+    </div>
+
   </div>
   <div class="flex-item">
     <ng-container *ngIf="!isEmpty && selectedTab">
@@ -13,13 +22,13 @@
         <input [(ngModel)]="tabName" placeholder="Name" [attr.disabled]="!isEditable ? '' : null" />
       </div>
 
-      <div style="margin-top: 8px;">
+      <!-- <div style="margin-top: 8px;">
         <label>
           <input type="checkbox" [(ngModel)]="isSystemNoticeTarget" [attr.disabled]="!isEditable ? '' : null" />
           このタブにシステム通知（入退室など）を表示する
         </label>
       </div>
-      <hr/>
+      <hr/> -->
 
       <hr/>
       <div>
