@@ -1,0 +1,21 @@
+/* ウィンドウ全体のコンテナ */
+.setting-container {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 各設定項目の行（ラベル） */
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* チェックボックスの余白リセット */
+.setting-item input[type="checkbox"] {
+  margin: 0;
+}

@@ -1,0 +1,23 @@
+<div class="setting-container">
+  
+  <label class="setting-item">
+    <span>立ち絵をウィンドウ内に表示(✕)</span>
+    <input type="checkbox" [(ngModel)]="chatSettingsService.showStandingPicInWindow" />
+  </label>
+  
+  <label class="setting-item">
+    <span>マウスのウィンドウ離脱時<br>ウィンドウ外の立ち絵を保持</span>
+    <input type="checkbox" [(ngModel)]="chatSettingsService.keepStandingPicOutside" />
+  </label>
+
+  <label class="setting-item">
+    <span>簡易表示で時間を表示</span>
+    <input type="checkbox" [(ngModel)]="chatSettingsService.showTimeInSimpleMode" />
+  </label>
+
+  <label class="setting-item">
+    <span>簡易表示でIDを表示</span>
+    <input type="checkbox" [(ngModel)]="chatSettingsService.showIdInSimpleMode" />
+  </label>
+
+</div>

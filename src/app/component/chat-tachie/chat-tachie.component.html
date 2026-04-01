@@ -10,4 +10,21 @@
   <input type="number" [(ngModel)]="chatTabList.tachieHeightValue"
          [min]="chatTabList.minTachieSize" [max]="chatTabList.maxTachieSize"
          class="size-input" />
-</div>
+
+         
+         <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 12px; font-size: 0.9em; vertical-align: middle;">
+    <label style="display: flex; align-items: center; cursor: pointer; white-space: nowrap;">
+      <input type="checkbox" [(ngModel)]="chatSettingsService.isSimpleMode" style="margin: 0 4px 0 0;" />
+      チャット簡易表示
+    </label>
+    <button style="padding: 0 4px; height: 24px; font-size: 1.1em; cursor: pointer;" (click)="openDetailSettings($event)">詳細</button>
+  </span>
+  </div>
+<!-- <label style="margin-left: 12px;">
+    <input type="checkbox" [(ngModel)]="chatSettingsService.isSimpleMode" />
+    チャット簡易表示
+  </label>
+  <button style="margin-left: 4px;" (click)="openDetailSettings()">詳細</button>
+
+  
+</div> -->

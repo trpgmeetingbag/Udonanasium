@@ -58,6 +58,9 @@ import { AppComponent } from './app.component';
 import { ChatTachieComponent } from './component/chat-tachie/chat-tachie.component';
 import { ChatTachieImageComponent } from './component/chat-tachie-img/chat-tachie-img.component';
 
+// 上部のimport群に追加
+import { ChatDetailSettingComponent } from './component/chat-detail-setting/chat-detail-setting.component';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -104,6 +107,7 @@ import { ChatTachieImageComponent } from './component/chat-tachie-img/chat-tachi
     ChatInputComponent,
     ChatTachieComponent, // 追加
     ChatTachieImageComponent, // 追加
+    ChatDetailSettingComponent, // ←これを追加
   ],
   imports: [
     BrowserModule,
