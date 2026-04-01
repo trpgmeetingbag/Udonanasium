@@ -6,8 +6,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-/* --- START: チャットログを上寄せにする修正 --- */
-  justify-content: flex-start;
+/* --- START: 仮想スクロールを正常に動作させるため、flex-end に戻す --- */
+  justify-content: flex-end;
 /* --- END --- */
   align-items: flex-end;
   width: 100%;
