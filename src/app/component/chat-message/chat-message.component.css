@@ -97,3 +97,22 @@
   display: table;
   clear: both;
 }
+
+/* --- START: 編集ボタンのスタイル追加 --- */
+.edit-btn {
+  font-size: 0.8em;
+  color: #999;
+  cursor: pointer;
+  margin-left: 8px;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.edit-btn:hover {
+  color: #444;
+}
+
+.message:hover .edit-btn {
+  display: inline-block;
+}
+/* --- END --- */

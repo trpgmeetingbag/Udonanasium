@@ -1,6 +1,11 @@
 <div class="container">
-  <div class="message" [ngClass]="{'direct-message': (chatMessage.isDirect || chatMessage.isSecret), 'system-message':chatMessage.isSystem, 'dicebot-message': chatMessage.isDicebot}"
-    [@flyInOut]="animeState">
+  <!-- <div class="message" [ngClass]="{'direct-message': (chatMessage.isDirect || chatMessage.isSecret), 'system-message':chatMessage.isSystem, 'dicebot-message': chatMessage.isDicebot}"
+    [@flyInOut]="animeState"> -->
+    <div class="message" [ngClass]="{
+  'direct-message': (!chatMessage.isSystem && (chatMessage.isDirect || chatMessage.isSecret)), 
+  'system-message': chatMessage.isSystem, 
+  'dicebot-message': chatMessage.isDicebot
+}" [@flyInOut]="animeState">
     
     <div class="image">
       <img *ngIf="chatMessage.imageUrl" [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵" />
@@ -23,6 +28,7 @@
 
 <ng-template #visible>
   <span>{{chatMessage.text}}</span>
+  <span *ngIf="chatMessage.isSendFromSelf" class="edit-btn" (click)="editMessage()">[編集]</span>
   <button *ngIf="chatMessage.isSecret" (click)="discloseMessage()">結果を公開</button>
 </ng-template>
 

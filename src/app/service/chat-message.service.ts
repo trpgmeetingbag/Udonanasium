@@ -1,4 +1,9 @@
-import { Injectable } from '@angular/core';
+// import { Injectable } from '@angular/core';
+// --- START: NgZone のインポート追加 ---
+import { Injectable, NgZone } from '@angular/core';
+import { EventSystem } from '@udonarium/core/system';
+// --- END ---
+
 
 import { ChatMessage, ChatMessageContext } from '@udonarium/chat-message';
 import { ChatTab } from '@udonarium/chat-tab';
@@ -22,7 +27,101 @@ export class ChatMessageService {
 
   gameType: string = '';
 
-  constructor() { }
+  // --- START: 重複排除用のプロパティを追加 ---
+  // 通知済みのPeerIDを記録しておくリスト
+  private notifiedPeers: Set<string> = new Set();
+  // --- END ---
+
+  // --- START: 瞬断対策用のプロパティを追加 ---
+  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+  // --- END ---
+
+// --- START: 入退室通知の初期化処理（NgZoneの注入） ---
+  constructor(private ngZone: NgZone) {
+    this.initializeSystemNotice();
+  }
+  // --- END ---
+
+  // --- START: 入退室通知（瞬断キャンセラー搭載版） ---
+  private initializeSystemNotice() {
+    EventSystem.register(this)
+      .on('CONNECT_PEER', event => {
+        const peerId = event.data.peerId;
+
+        // 瞬断からの復帰（5秒以内）だった場合、退室タイマーをキャンセルして静かに復帰させる
+        if (this.disconnectTimers.has(peerId)) {
+          clearTimeout(this.disconnectTimers.get(peerId));
+          this.disconnectTimers.delete(peerId);
+          return; 
+        }
+
+        if (this.notifiedPeers.has(peerId)) return;
+        this.notifiedPeers.add(peerId);
+
+        this.ngZone.run(() => {
+          setTimeout(() => {
+            const peerCursor = PeerCursor.findByPeerId(peerId);
+            if (peerCursor && peerCursor.isMine) return;
+
+            const userId = peerCursor ? peerCursor.userId : peerId.substring(0, 8);
+            const name = peerCursor ? peerCursor.name : 'プレイヤー';
+            this.sendSystemNotice(`あなたと${userId}[${name}]の接続を確認しました。`);
+          }, 1500);
+        });
+      })
+      .on('DISCONNECT_PEER', event => {
+        const peerId = event.data.peerId;
+
+        // 即時退室扱いにせず、5秒間の猶予を設ける
+        const timer = setTimeout(() => {
+          this.disconnectTimers.delete(peerId);
+          if (this.notifiedPeers.has(peerId)) this.notifiedPeers.delete(peerId);
+
+          this.ngZone.run(() => {
+            const peerCursor = PeerCursor.findByPeerId(peerId);
+            if (peerCursor && peerCursor.isMine) return;
+
+            const userId = peerCursor ? peerCursor.userId : peerId.substring(0, 8);
+            const name = peerCursor ? peerCursor.name : 'プレイヤー';
+            this.sendSystemNotice(`${userId}[${name}]がログアウトしました。`);
+          });
+        }, 5000); // 5000ミリ秒 = 5秒
+
+        this.disconnectTimers.set(peerId, timer);
+      });
+  }
+  // --- END ---
+
+  // --- START: システムメッセージ送信処理（正規ルート・即時更新版） ---
+  private sendSystemNotice(text: string) {
+    if (this.chatTabs.length === 0) return;
+    const targetTab = this.chatTabs[0];
+
+    // 自分の短いIDを取得
+    const myUserId = PeerCursor.myCursor ? PeerCursor.myCursor.userId : 'System';
+
+    // 正規のコンテキストを利用してメッセージを生成する
+    let context: ChatMessageContext = {
+      from: myUserId, // 自分から
+      to: myUserId,   // 自分宛て（これでローカル＆シークレット扱いになり、スパム拡散を防ぐ）
+      name: 'システムメッセージ',
+      imageIdentifier: '',
+      timestamp: this.calcTimeStamp(targetTab),
+      tag: 'system to-pl-system-message', // リリィ互換タグ
+      text: text
+    };
+
+    // NgZone内で正規ルート（addMessage）を呼ぶことで、UIが即座に更新される
+    this.ngZone.run(() => {
+      let message = targetTab.addMessage(context);
+      if (message) {
+        // 色や目印の後付け属性をセット
+        message.setAttribute('messColor', '#006633');
+        message.setAttribute('isSystem', 'true');
+      }
+    });
+  }
+  // --- END ---
 
   get chatTabs(): ChatTab[] {
     return ChatTabList.instance.chatTabs;
