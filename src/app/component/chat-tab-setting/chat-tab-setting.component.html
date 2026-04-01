@@ -12,6 +12,15 @@
       <div>タブ名 :
         <input [(ngModel)]="tabName" placeholder="Name" [attr.disabled]="!isEditable ? '' : null" />
       </div>
+
+      <div style="margin-top: 8px;">
+        <label>
+          <input type="checkbox" [(ngModel)]="isSystemNoticeTarget" [attr.disabled]="!isEditable ? '' : null" />
+          このタブにシステム通知（入退室など）を表示する
+        </label>
+      </div>
+      <hr/>
+
       <hr/>
       <div>
         <ng-container *ngIf="!isDeleted">

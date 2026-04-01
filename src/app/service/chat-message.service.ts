@@ -91,31 +91,33 @@ export class ChatMessageService {
       });
   }
   // --- END ---
-
-  // --- START: システムメッセージ送信処理（正規ルート・即時更新版） ---
+// --- START: システムメッセージ送信処理（通知先タブ対応版） ---
   private sendSystemNotice(text: string) {
     if (this.chatTabs.length === 0) return;
-    const targetTab = this.chatTabs[0];
 
-    // 自分の短いIDを取得
+    // 1. 'systemNoticeTarget' 属性が 'true' になっているタブを探す
+    let targetTab = this.chatTabs.find(tab => tab.getAttribute('systemNoticeTarget') === 'true');
+    
+    // 2. もし設定されているタブが一つもなければ、デフォルトで一番左のタブ（chatTabs[0]）を使用する
+    if (!targetTab) {
+      targetTab = this.chatTabs[0];
+    }
+
     const myUserId = PeerCursor.myCursor ? PeerCursor.myCursor.userId : 'System';
 
-    // 正規のコンテキストを利用してメッセージを生成する
     let context: ChatMessageContext = {
-      from: myUserId, // 自分から
-      to: myUserId,   // 自分宛て（これでローカル＆シークレット扱いになり、スパム拡散を防ぐ）
+      from: myUserId, 
+      to: myUserId,   
       name: 'システムメッセージ',
       imageIdentifier: '',
       timestamp: this.calcTimeStamp(targetTab),
-      tag: 'system to-pl-system-message', // リリィ互換タグ
+      tag: 'system to-pl-system-message', 
       text: text
     };
 
-    // NgZone内で正規ルート（addMessage）を呼ぶことで、UIが即座に更新される
     this.ngZone.run(() => {
       let message = targetTab.addMessage(context);
       if (message) {
-        // 色や目印の後付け属性をセット
         message.setAttribute('messColor', '#006633');
         message.setAttribute('isSystem', 'true');
       }

@@ -23,6 +23,21 @@ export class ChatTabSettingComponent implements OnInit, OnDestroy {
   get tabName(): string { return this.selectedTab.name; }
   set tabName(tabName: string) { if (this.isEditable) this.selectedTab.name = tabName; }
 
+  // --- START: システム通知フラグの取得と保存 ---
+  get isSystemNoticeTarget(): boolean {
+    if (!this.selectedTab) return false;
+    // 'systemNoticeTarget' という属性が存在し、かつ 'true' であれば通知先とする
+    return this.selectedTab.getAttribute('systemNoticeTarget') === 'true';
+  }
+
+  set isSystemNoticeTarget(isTarget: boolean) {
+    if (this.isEditable && this.selectedTab) {
+      // 属性値を更新して全プレイヤーと同期する
+      this.selectedTab.setAttribute('systemNoticeTarget', isTarget ? 'true' : 'false');
+    }
+  }
+  // --- END ---
+
   get chatTabs(): ChatTab[] { return this.chatMessageService.chatTabs; }
   get isEmpty(): boolean { return this.chatMessageService.chatTabs.length < 1 }
   get isDeleted(): boolean { return this.selectedTab ? ObjectStore.instance.get(this.selectedTab.identifier) == null : false; }
