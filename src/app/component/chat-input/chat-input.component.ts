@@ -18,6 +18,7 @@ import { PointerDeviceService } from 'service/pointer-device.service';
 import { DataElement } from '@udonarium/data-element';
 import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
 
+import { ChatTab } from '@udonarium/chat-tab';
 
 
 @Component({
@@ -365,6 +366,8 @@ export class ChatInputComponent implements OnInit, OnDestroy {
 
     // 選択中の立ち絵IDを取得して送信データに乗せる
     let selectedTachieId = '';
+    let statusChangeResult = ''; // ▼ 新規追加：結果を受け取る変数
+    
     if (this.character) {
        const elements = this.tachieElements;
        if (elements.length > 0 && this.tachieIndex < elements.length) {
@@ -372,11 +375,52 @@ export class ChatInputComponent implements OnInit, OnDestroy {
        } else if (this.character.imageFile) {
          selectedTachieId = this.character.imageFile.identifier;
        }
+
+// ▼▼▼ 新規追加：チャット送信時にステータス変更コマンドを解析・適用する ▼▼▼
+       //this.applyStatusChanges(this.text, this.character);
+       // ▲▲▲ 新規追加ここまで ▲▲▲
+       // ▼▼▼ 変更：適用処理を呼び出し、結果の文字列を受け取る ▼▼▼
+       statusChangeResult = this.applyStatusChanges(this.text, this.character);
+       // ▲▲▲ 変更ここまで ▲▲▲
+
     } else if (this.myPeer) {
        selectedTachieId = this.myPeer.imageIdentifier;
     }
 
     this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo, color: this.chatColor, tachieId: selectedTachieId });
+
+// ▼▼▼ 新規追加：ステータス変更があった場合、システムメッセージを追記する ▼▼▼
+    if (statusChangeResult && this.character) {
+       // 本元の発言が確実に先に処理されるよう、ごくわずかに時間をズラす
+       setTimeout(() => {
+          let chatTab = ObjectStore.instance.get<ChatTab>(this.chatTabidentifier);
+          if (chatTab) {
+             let msg = new ChatMessage();
+             msg.from = 'System';
+             msg.to = this.sendTo;
+             msg.name = this.character.name;
+             msg.tag = 'system';
+             msg.value = statusChangeResult; 
+             
+             // 【大正解の迂回路】専用メソッド「setAttribute」を使って内部データに直接書き込む
+             msg.setAttribute('messColor', this.chatColor);
+             msg.setAttribute('originFrom', this.myPeer.identifier);
+             msg.setAttribute('fixd', 'false'); // XMLの fixd="false" を再現
+             
+             // 1970年問題も、専用メソッドに時間を渡して解決！
+             msg.setAttribute('timestamp', this.chatMessageService.getTime() + 1);
+             
+             // オブジェクトの初期化
+             msg.initialize();
+
+             // addMessageのバグを回避するため、直接ツリーに追加して完了イベントを呼ぶ
+             chatTab.appendChild(msg);
+             EventSystem.trigger('MESSAGE_ADDED', { tabIdentifier: chatTab.identifier, messageIdentifier: msg.identifier });
+          }
+       }, 50); 
+    }
+    // ▲▲▲ 新規追加ここまで ▲▲▲
+
     this.text = '';
   }
   // sendChat(event: Partial<KeyboardEvent>) {
@@ -488,4 +532,69 @@ export class ChatInputComponent implements OnInit, OnDestroy {
         return true;
     }
   }
+
+
+  // ▼▼▼ 新規追加：ステータス変更コマンドの解析・適用メソッド ▼▼▼
+// ▼▼▼ 修正：ステータス変更コマンドの解析・適用メソッド（結果文字列を返すように変更） ▼▼▼
+  private applyStatusChanges(text: string, character: GameCharacter): string {
+    const regex = /:([^\s:+\-*/=]+)([+\-*/=])([^\s:]+)/g;
+    let match;
+    let isUpdated = false;
+    let results: string[] = []; // 結果を貯める配列
+
+    while ((match = regex.exec(text)) !== null) {
+      const attrName = match[1];
+      const operator = match[2];
+      const valueStr = match[3];
+
+      let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
+                      character.commonDataElement?.getFirstElementByName(attrName);
+
+      if (targetElm) {
+        const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
+        const currentVal = isResource ? targetElm.currentValue : targetElm.value;
+
+        const currentNum = Number(currentVal);
+        const valNum = Number(valueStr);
+
+        if (!Number.isNaN(currentNum) && !Number.isNaN(valNum)) {
+          let newVal = currentNum;
+          switch (operator) {
+            case '+': newVal += valNum; break;
+            case '-': newVal -= valNum; break;
+            case '*': newVal *= valNum; break;
+            case '/': newVal /= valNum; break;
+            case '=': newVal = valNum; break;
+          }
+
+          if (isResource) {
+            targetElm.currentValue = newVal;
+          } else {
+            targetElm.value = newVal;
+          }
+          isUpdated = true;
+          // 結果テキストを作成（例: HP:200+5>205）
+          results.push(`${attrName}:${currentNum}${operator}${valNum}>${newVal}`);
+        } 
+        else if (operator === '=') {
+          if (isResource) {
+            targetElm.currentValue = valueStr;
+          } else {
+            targetElm.value = valueStr;
+          }
+          isUpdated = true;
+          // 文字列の代入結果（例: メモ:通常>睡眠中）
+          results.push(`${attrName}:${currentVal}>${valueStr}`);
+        }
+      }
+    }
+
+    if (isUpdated) {
+      character.update();
+    }
+    
+    // 複数の結果がある場合はスペース2つで区切って1つの文字列にする
+    return results.join('  ');
+  }
+  // ▲▲▲ 修正ここまで ▲▲▲
 }
