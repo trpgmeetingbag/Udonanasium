@@ -160,6 +160,56 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     return root;
   }
 
+// --- START: システム設定用のデータ管理 ---
+  get hideInTableInventory(): boolean {
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+    if (!root) return false;
+    let el = root.getFirstElementByName('hideInTableInventory');
+    return el ? el.value === 'true' : false;
+  }
+
+  set hideInTableInventory(value: boolean) {
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+    if (!root) {
+      root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
+      this.tabletopObject.detailDataElement.appendChild(root);
+    }
+    let el = root.getFirstElementByName('hideInTableInventory');
+    if (!el) {
+      el = DataElement.create('hideInTableInventory', value ? 'true' : 'false', {}, 'hideInTableInventory_' + this.tabletopObject.identifier);
+      root.appendChild(el);
+    } else {
+      el.value = value ? 'true' : 'false';
+    }
+  }
+
+  get disableChat(): boolean {
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+    if (!root) return false;
+    let el = root.getFirstElementByName('disableChat');
+    return el ? el.value === 'true' : false;
+  }
+
+  set disableChat(value: boolean) {
+    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
+    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+    if (!root) {
+      root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
+      this.tabletopObject.detailDataElement.appendChild(root);
+    }
+    let el = root.getFirstElementByName('disableChat');
+    if (!el) {
+      el = DataElement.create('disableChat', value ? 'true' : 'false', {}, 'disableChat_' + this.tabletopObject.identifier);
+      root.appendChild(el);
+    } else {
+      el.value = value ? 'true' : 'false';
+    }
+  }
+  // --- END ---
+
 get tachiePosition(): number {
     if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return 0;
     let root = this.tabletopObject.detailDataElement.getFirstElementByName('立ち絵位置');

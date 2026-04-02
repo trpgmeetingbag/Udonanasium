@@ -228,3 +228,31 @@ input {
 }
 .tachie-btn:hover { background: #666; }
 .tachie-btn.danger { background: #822; border-color: #f55; }
+
+/* --- START: システム設定用のスタイル追加 --- */
+.system-settings-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.system-setting-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.system-setting-label {
+  /* ▼▼▼ 修正箇所 ▼▼▼ */
+  width: 340px; /* 横幅を広げてチェックボックスを右に押し出す（環境に合わせて微調整してください） */
+  white-space: nowrap; /* テキストが途中で改行されるのを防ぐ */
+  /* ▲▲▲ 修正箇所 ▲▲▲ */
+  
+  text-align: right;
+  margin-right: 8px;
+  font-size: 14px;
+}
+/* --- END --- */

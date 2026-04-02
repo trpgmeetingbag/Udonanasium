@@ -33,6 +33,18 @@
     <option value="{{networkService.peerId}}">個人インベントリ</option>
     <option value="graveyard">墓地</option>
   </select>
+
+  <div class="system-settings-container">
+    <label class="system-setting-item">
+      <span class="system-setting-label">テーブルインベントリ非表示</span>
+      <input type="checkbox" [(ngModel)]="hideInTableInventory" />
+    </label>
+    <label class="system-setting-item">
+      <span class="system-setting-label">発言をしない</span>
+      <input type="checkbox" [(ngModel)]="disableChat" />
+    </label>
+  </div>
+
 </ng-container>
 <div *ngIf="tabletopObject" class="flex-container">
   <div *ngIf="0 < tabletopObject.imageFile?.url.length" class="box main-image-box">
@@ -48,10 +60,10 @@
     </div>
   </ng-container>
 
-  <ng-container *ngIf="tabletopObject.detailDataElement">
+<ng-container *ngIf="tabletopObject.detailDataElement">
     <ng-container *ngFor="let childElement of tabletopObject.detailDataElement.children">
-      <div class="flex-item" *ngIf="$any(childElement).name !== 'tachie'">
-        <div class="table">
+      <div class="flex-item" *ngIf="$any(childElement).name !== 'tachie' && $any(childElement).name !== 'システム設定'">
+      <div class="table">
           <div class="table-row" game-data-element [gameDataElement]="$any(childElement)" [isEdit]="isEdit"></div>
         </div>
       </div>
