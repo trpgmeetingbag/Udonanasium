@@ -10,7 +10,8 @@
           <div class="material-icons of-back">autorenew</div>
         </div>
       </div>
-      <div class="pedestal-inner"></div>
+      <!-- <div class="pedestal-inner"></div> -->
+      <div class="pedestal-inner" [class.is-hidden-inventory]="hideInTableInventory"></div>
       <div *ngIf="isSelected" class="selected-highlight" [ngClass]="{'is-magnetic': isMagnetic}"></div>
       <div class="pedestal-outer"></div>
       <div class="upright-transform is-fit-width is-3d">

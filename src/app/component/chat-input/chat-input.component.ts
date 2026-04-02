@@ -1,4 +1,5 @@
-import { Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+
+import { Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { ChatMessage } from '@udonarium/chat-message';
 import { ImageFile } from '@udonarium/core/file-storage/image-file';
 import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
@@ -16,6 +17,8 @@ import { PointerDeviceService } from 'service/pointer-device.service';
 
 import { DataElement } from '@udonarium/data-element';
 import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
+
+
 
 @Component({
   selector: 'chat-input',
@@ -36,7 +39,18 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   @Input('sendFrom') _sendFrom: string = this.myPeer ? this.myPeer.identifier : '';
   @Output() sendFromChange = new EventEmitter<string>();
   get sendFrom(): string { return this._sendFrom };
-  set sendFrom(sendFrom: string) { this._sendFrom = sendFrom; this.sendFromChange.emit(sendFrom); }
+  // set sendFrom(sendFrom: string) { this._sendFrom = sendFrom; this.sendFromChange.emit(sendFrom); }
+  // ▼▼▼ 修正：切り替わり時に tachieIndex を 0 にリセット ▼▼▼
+  set sendFrom(sendFrom: string) { 
+    let hasChanged = this._sendFrom !== sendFrom;
+    this._sendFrom = sendFrom; 
+    this.sendFromChange.emit(sendFrom); 
+    
+    if (hasChanged) {
+      this.tachieIndex = 0;
+    }
+  }
+  // ▲▲▲ 修正ここまで ▲▲▲
 
   @Input('sendTo') _sendTo: string = '';
   @Output() sendToChange = new EventEmitter<string>();
@@ -255,7 +269,9 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     public chatMessageService: ChatMessageService,
     private batchService: BatchService,
     private panelService: PanelService,
-    private pointerDeviceService: PointerDeviceService
+    private pointerDeviceService: PointerDeviceService,
+    // ▼▼▼ 追加：再描画を指示するためのサービスを注入 ▼▼▼
+    private changeDetector: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -273,6 +289,11 @@ export class ChatInputComponent implements OnInit, OnDestroy {
       })
       .on(`UPDATE_GAME_OBJECT/aliasName/${GameCharacter.aliasName}`, event => {
         this.shouldUpdateCharacterList = true;
+
+// ▼▼▼ 追加：キャラクターが更新されたらリスト（プルダウン）を即座に再描画 ▼▼▼
+        this.changeDetector.markForCheck();
+        // ▲▲▲ 追加ここまで ▲▲▲
+
         if (event.data.identifier !== this.sendFrom) return;
         let gameCharacter = ObjectStore.instance.get<GameCharacter>(event.data.identifier);
         if (gameCharacter && !this.allowsChat(gameCharacter)) {
@@ -438,6 +459,20 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   }
 
   private allowsChat(gameCharacter: GameCharacter): boolean {
+
+// ▼▼▼ 新規追加：「発言をしない」フラグのチェック ▼▼▼
+    if (gameCharacter.detailDataElement) {
+      let root = gameCharacter.detailDataElement.getFirstElementByName('システム設定');
+      if (root) {
+        let el = root.getFirstElementByName('disableChat');
+        // フラグが true なら発言不可（リストに表示しない）として弾く
+        if (el && el.value === 'true') {
+          return false; 
+        }
+      }
+    }
+    // ▲▲▲ 新規追加ここまで ▲▲▲
+
     switch (gameCharacter.location.name) {
       case 'table':
       case this.myPeer.peerId:

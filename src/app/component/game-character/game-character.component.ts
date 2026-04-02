@@ -53,6 +53,15 @@ export class GameCharacterComponent implements OnChanges, OnDestroy {
   get name(): string { return this.gameCharacter.name; }
   get size(): number { return MathUtil.clampMin(this.gameCharacter.size); }
 
+  // --- START: テーブルインベントリ非表示フラグの取得 ---
+  get hideInTableInventory(): boolean {
+    if (!this.gameCharacter || !this.gameCharacter.detailDataElement) return false;
+    let root = this.gameCharacter.detailDataElement.getFirstElementByName('システム設定');
+    if (!root) return false;
+    let el = root.getFirstElementByName('hideInTableInventory');
+    return el ? el.value === 'true' : false;
+  }
+  // --- END ---
 
 // --- START: 盤面のコマ画像を動的に切り替えるロジック ---
 get imageFile(): ImageFile {

@@ -254,3 +254,9 @@
 .component:hover .material-icons, .component:active .material-icons {
   display: inline;
 }
+
+/* --- START: テーブルインベントリ非表示ON時の青い台座 --- */
+.pedestal-inner.is-hidden-inventory {
+  border-color: #42A5F5; /* お好みの青色（爽やかなブルー）に指定 */
+}
+/* --- END --- */

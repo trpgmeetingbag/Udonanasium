@@ -183,6 +183,7 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     } else {
       el.value = value ? 'true' : 'false';
     }
+    if (this.tabletopObject) this.tabletopObject.update();
   }
 
   get disableChat(): boolean {
@@ -207,6 +208,7 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     } else {
       el.value = value ? 'true' : 'false';
     }
+    if (this.tabletopObject) this.tabletopObject.update();
   }
   // --- END ---
 
