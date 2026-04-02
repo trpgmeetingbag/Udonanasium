@@ -116,3 +116,24 @@
   display: inline-block;
 }
 /* --- END --- */
+
+/* --- START: 簡易表示用のスタイル調整 --- */
+/* 簡易表示時は、画像分の余白がなくなるため padding を調整 */
+.simple-mode .message {
+  padding-left: 10px;
+}
+
+/* タイトル行（名前や時間）をインライン化し、発言との間に隙間を作る */
+.simple-body .title {
+  display: inline;
+  padding-left: 0;
+  margin-right: 12px; /* 名前と発言の間のスペース（お好みで調整してください） */
+}
+
+/* テキスト（発言内容）もインライン化し、タイトル行のすぐ右から続くようにする */
+.simple-body .text {
+  display: inline;
+  padding-left: 0;
+  padding-top: 0; 
+}
+/* --- END --- */

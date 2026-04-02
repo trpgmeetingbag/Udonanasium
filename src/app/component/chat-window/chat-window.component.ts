@@ -9,7 +9,10 @@ import { ChatMessageService } from 'service/chat-message.service';
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 
-
+// ▼▼▼ 追加：イベント購読とサービス ▼▼▼
+import { Subscription } from 'rxjs';
+import { ChatSettingsService } from '../../service/chat-settings.service'; // パスは環境に合わせて調整してください
+// ▲▲▲ 追加ここまで ▲▲▲
 
 @Component({
   selector: 'chat-window',
@@ -37,10 +40,17 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
   isAutoScroll: boolean = true;
   scrollToBottomTimer: NodeJS.Timeout = null;
 
+  // ▼▼▼ 追加：設定監視用の変数 ▼▼▼
+  private settingsSub: Subscription;
+  // ▲▲▲ 追加ここまで ▲▲▲
+
   constructor(
     public chatMessageService: ChatMessageService,
     private panelService: PanelService,
-    private pointerDeviceService: PointerDeviceService
+    private pointerDeviceService: PointerDeviceService,
+    // ▼▼▼ 追加：設定サービスを注入 ▼▼▼
+    public chatSettingsService: ChatSettingsService
+    // ▲▲▲ 追加ここまで ▲▲▲
   ) { }
 
   ngOnInit() {
@@ -57,8 +67,29 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
           this.checkAutoScroll();
         }
         if (this.isAutoScroll && this.chatTab) this.chatTab.markForRead();
+// ▼▼▼ 修正：微小なスクロールで再計算を誘発 ▼▼▼
+          if (this.chatSettingsService.isSimpleMode && this.panelService.scrollablePanel) {
+            setTimeout(() => {
+              // 1ピクセル上にスクロールして、すぐ戻す
+              this.panelService.scrollablePanel.scrollBy(0, -1);
+              setTimeout(() => this.panelService.scrollablePanel.scrollBy(0, 1), 10);
+            }, 50);
+          }
+          // ▲▲▲ 修正ここまで ▲▲▲
       });
     Promise.resolve().then(() => this.updatePanelTitle());
+
+// ▼▼▼ 修正：設定切り替え時も微小なスクロールで再計算を誘発 ▼▼▼
+    this.settingsSub = this.chatSettingsService.settingsChanged.subscribe(() => {
+      setTimeout(() => {
+        this.scrollToBottom(true);
+        if (this.panelService.scrollablePanel) {
+          this.panelService.scrollablePanel.scrollBy(0, -1);
+          setTimeout(() => this.panelService.scrollablePanel.scrollBy(0, 1), 10);
+        }
+      }, 50);
+    });
+    // ▲▲▲ 修正ここまで ▲▲▲
   }
 
   ngAfterViewInit() {
@@ -67,7 +98,12 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     EventSystem.unregister(this);
-  }
+    // ▼▼▼ 追加：ウィンドウを閉じた際に監視を解除する ▼▼▼
+    if (this.settingsSub) {
+      this.settingsSub.unsubscribe();
+    }
+    // ▲▲▲ 追加ここまで ▲▲▲
+  } 
 
   // @TODO やり方はもう少し考えた方がいいい
   scrollToBottom(isForce: boolean = false) {

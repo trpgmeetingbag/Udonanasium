@@ -1,10 +1,15 @@
 import { animate, keyframes, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
 
 import { ChatMessage } from '@udonarium/chat-message';
 import { ImageFile } from '@udonarium/core/file-storage/image-file';
 import { ChatMessageService } from 'service/chat-message.service';
 
+import { ChatSettingsService } from '../../service/chat-settings.service';
+
+// 修正1: ChangeDetectorRef, OnDestroy を import に追加
+import { ChangeDetectionStrategy, Component, Input, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
+// 修正2: Subscription を import に追加
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'chat-message',
@@ -29,20 +34,37 @@ import { ChatMessageService } from 'service/chat-message.service';
   changeDetection: ChangeDetectionStrategy.Default
 })
 
-export class ChatMessageComponent implements OnInit {
+export class ChatMessageComponent implements OnInit, OnDestroy {
   @Input() chatMessage: ChatMessage;
   imageFile: ImageFile = ImageFile.Empty;
   animeState: string = 'inactive';
+// 修正4: イベント購読用の変数を追加
+  private subscription: Subscription;
 
   constructor(
-    private chatMessageService: ChatMessageService
+    private chatMessageService: ChatMessageService,
+    public chatSettingsService: ChatSettingsService,
+    // 修正5: 画面更新用の ChangeDetectorRef を注入
+    private changeDetector: ChangeDetectorRef 
   ) { }
 
-  ngOnInit() {
+ngOnInit() {
     let file: ImageFile = this.chatMessage.image;
     if (file) this.imageFile = file;
     let time = this.chatMessageService.getTime();
     if (time - 10 * 1000 < this.chatMessage.timestamp) this.animeState = 'active';
+
+    // 修正6: 設定変更の通知を受け取り、このメッセージを再描画するようAngularに指示
+    this.subscription = this.chatSettingsService.settingsChanged.subscribe(() => {
+      this.changeDetector.markForCheck();
+    });
+  }
+
+  // 修正7: コンポーネントが破棄される際に購読を解除（メモリリーク防止）
+  ngOnDestroy() {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
   }
 
   discloseMessage() {

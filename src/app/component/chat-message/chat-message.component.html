@@ -1,22 +1,36 @@
-<div class="container">
-  <!-- <div class="message" [ngClass]="{'direct-message': (chatMessage.isDirect || chatMessage.isSecret), 'system-message':chatMessage.isSystem, 'dicebot-message': chatMessage.isDicebot}"
-    [@flyInOut]="animeState"> -->
+<div class="container" [class.simple-mode]="chatSettingsService.isSimpleMode">
     <div class="message" [ngClass]="{
   'direct-message': (!chatMessage.isSystem && (chatMessage.isDirect || chatMessage.isSecret)), 
   'system-message': chatMessage.isSystem, 
   'dicebot-message': chatMessage.isDicebot
 }" [@flyInOut]="animeState">
     
-    <div class="image">
+    <div class="image" *ngIf="!chatSettingsService.isSimpleMode">
       <img *ngIf="chatMessage.imageUrl" [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵" />
       <img *ngIf="!chatMessage.imageUrl && 0 < imageFile?.url?.length" [src]="imageFile?.url | safe: 'resourceUrl'" alt="アイコン" />
     </div>
 
-    <div class="body">
+    <div class="body" [class.simple-body]="chatSettingsService.isSimpleMode">
       <div class="title">
         <span class="msg-name" [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.name}}</span>
-        <span class='tip msg-from' [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.from}}</span>
-        <span class='tip msg-timestamp' [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.timestamp | date:'y/M/d H:mm'}}</span>
+        
+        <span class='tip msg-from' 
+              *ngIf="!chatSettingsService.isSimpleMode || chatSettingsService.showIdInSimpleMode"
+              [style.color]="chatMessage.color ? chatMessage.color : null">
+              {{chatMessage.from}}
+        </span>
+        
+        <ng-container *ngIf="!chatSettingsService.isSimpleMode; else simpleTime">
+          <span class='tip msg-timestamp' [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.timestamp | date:'y/M/d H:mm'}}</span>
+        </ng-container>
+        <ng-template #simpleTime>
+          <span class='tip msg-timestamp' 
+                *ngIf="chatSettingsService.showTimeInSimpleMode"
+                [style.color]="chatMessage.color ? chatMessage.color : null">
+                {{chatMessage.timestamp | date:'H:mm'}}
+          </span>
+        </ng-template>
+
       </div>
       
       <div class="text msg-text" [style.color]="chatMessage.color ? chatMessage.color : null">
@@ -35,41 +49,3 @@
 <ng-template #secret>
   <span>（シークレットダイス）</span>
 </ng-template>
-
-<!-- <div class="container">
-  <div class="message" [ngClass]="{'direct-message': (chatMessage.isDirect || chatMessage.isSecret), 'system-message':chatMessage.isSystem, 'dicebot-message': chatMessage.isDicebot}"
-    [@flyInOut]="animeState">
-    <div class="image">
-      <img *ngIf="0 < imageFile?.url?.length" [src]="imageFile?.url | safe: 'resourceUrl'" />
-    </div>
-    <div class="body">
-      <div class="title">
-        <span class="msg-name">{{chatMessage.name}}</span>
-        <span class='tip msg-from'>{{chatMessage.from}}</span>
-        <span class='tip msg-timestamp'>{{chatMessage.timestamp | date:'y/M/d H:mm'}}</span>
-      </div>
-      
-      書き換え前の構造
-      <div class="tachie-thumbnail" *ngIf="chatMessage.tachieId && chatMessage.imageUrl">
-        <img [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵サムネイル" />
-      </div>
-
-      <div class="tachie-thumbnail" *ngIf="chatMessage.imageIdentifier && chatMessage.imageUrl">
-        <img [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵サムネイル" />
-      </div>
-
-      <div class="text msg-text" [style.color]="chatMessage.color ? chatMessage.color : null">
-        <ng-container *ngIf="!chatMessage.isSecret || chatMessage.isSendFromSelf; then visible; else secret"></ng-container>
-      </div>
-    </div>
-  </div>
-</div>
-
-<ng-template #visible>
-  <span>{{chatMessage.text}}</span>
-  <button *ngIf="chatMessage.isSecret" (click)="discloseMessage()">結果を公開</button>
-</ng-template>
-
-<ng-template #secret>
-  <span>（シークレットダイス）</span>
-</ng-template> -->
