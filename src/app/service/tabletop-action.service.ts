@@ -142,7 +142,7 @@ export class TabletopActionService {
 
     testCharacter = new GameCharacter('testCharacter_1');
     fileContext = ImageFile.createEmpty('testCharacter_1_image').toContext();
-    fileContext.url = './assets/images/mon_052.gif';
+    fileContext.url = './assets/images/yumenokakeraCORE.png';
     testFile = ImageStorage.instance.add(fileContext);
     testCharacter.location.x = 5 * 50;
     testCharacter.location.y = 9 * 50;
@@ -157,7 +157,7 @@ export class TabletopActionService {
 
     testCharacter = new GameCharacter('testCharacter_3');
     fileContext = ImageFile.createEmpty('testCharacter_3_image').toContext();
-    fileContext.url = './assets/images/mon_128.gif';
+    fileContext.url = './assets/images/yumenokakeraKOAKUMA.png';
     testFile = ImageStorage.instance.add(fileContext);
     testCharacter.location.x = 4 * 50;
     testCharacter.location.y = 2 * 50;
@@ -166,7 +166,7 @@ export class TabletopActionService {
 
     testCharacter = new GameCharacter('testCharacter_4');
     fileContext = ImageFile.createEmpty('testCharacter_4_image').toContext();
-    fileContext.url = './assets/images/mon_150.gif';
+    fileContext.url = './assets/images/yumenokakeraTOKI.png';
     testFile = ImageStorage.instance.add(fileContext);
     testCharacter.location.x = 6 * 50;
     testCharacter.location.y = 11 * 50;
@@ -175,7 +175,7 @@ export class TabletopActionService {
 
     testCharacter = new GameCharacter('testCharacter_5');
     fileContext = ImageFile.createEmpty('testCharacter_5_image').toContext();
-    fileContext.url = './assets/images/mon_211.gif';
+    fileContext.url = './assets/images/yumenokakeraRIN.png';
     testFile = ImageStorage.instance.add(fileContext);
     testCharacter.location.x = 12 * 50;
     testCharacter.location.y = 12 * 50;
@@ -184,7 +184,7 @@ export class TabletopActionService {
 
     testCharacter = new GameCharacter('testCharacter_6');
     fileContext = ImageFile.createEmpty('testCharacter_6_image').toContext();
-    fileContext.url = './assets/images/mon_135.gif';
+    fileContext.url = './assets/images/yumenokakeraDAITYAN.png';
     testFile = ImageStorage.instance.add(fileContext);
     testCharacter.location.x = 5 * 50;
     testCharacter.location.y = 13 * 50;

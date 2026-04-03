@@ -1,4 +1,5 @@
-import { AfterViewInit, Component, NgZone, OnDestroy, ViewChild, ViewContainerRef } from '@angular/core';
+// import { AfterViewInit, Component, NgZone, OnDestroy, ViewChild, ViewContainerRef } from '@angular/core';
+import { AfterViewInit, Component, NgZone, OnDestroy, ViewChild, ViewContainerRef, HostListener } from '@angular/core';
 
 import { ChatTabList } from '@udonarium/chat-tab-list';
 import { AudioPlayer } from '@udonarium/core/file-storage/audio-player';
@@ -39,6 +40,8 @@ import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 import { SaveDataService } from 'service/save-data.service';
 
+
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -53,6 +56,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   isSaveing: boolean = false;
   progresPercent: number = 0;
 
+  // === 追加: ページ離脱時の警告 ===
+  @HostListener('window:beforeunload', ['$event'])
+  unloadNotification($event: any) {
+    $event.preventDefault();
+    $event.returnValue = '本当にこのサイトを離れますか？現在の接続が切断されます。';
+  }
+  
   constructor(
     private modalService: ModalService,
     private panelService: PanelService,

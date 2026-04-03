@@ -70,3 +70,14 @@
 .pointer-events-none {
   pointer-events: none;
 }
+/* === 折りたたみ（ロールアップ）時のスタイル === */
+.draggable-panel.is-folded {
+  height: 25px !important;       /* titleの高さに強制固定 */
+  min-height: 25px !important;
+  border-bottom: none;           /* 下部の境界線を消してスッキリさせる */
+  resize: none !important;       /* リサイズを無効化 */
+}
+
+.draggable-panel.is-folded .scrollable-panel {
+  display: none;                 /* コンテンツ部分を非表示 */
+}
