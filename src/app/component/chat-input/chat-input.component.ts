@@ -265,6 +265,10 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   get myPeer(): PeerCursor { return PeerCursor.myCursor; }
   get otherPeers(): PeerCursor[] { return ObjectStore.instance.getObjects(PeerCursor); }
 
+  // ▼▼▼ 新規追加：自分がパレット内で使われているかを判定するフラグ ▼▼▼
+  public isPaletteMode: boolean = false;
+  // ▲▲▲ 新規追加ここまで ▲▲▲
+
   constructor(
     private ngZone: NgZone,
     public chatMessageService: ChatMessageService,
@@ -298,11 +302,23 @@ export class ChatInputComponent implements OnInit, OnDestroy {
         if (event.data.identifier !== this.sendFrom) return;
         let gameCharacter = ObjectStore.instance.get<GameCharacter>(event.data.identifier);
         if (gameCharacter && !this.allowsChat(gameCharacter)) {
+
+// ▼▼▼ 修正：パレットモードの時は、安全装置（強制切り替え）を発動させない ▼▼▼
+        if (gameCharacter && !this.allowsChat(gameCharacter) && !this.isPaletteMode) {
           if (0 < this.gameCharacters.length && this.onlyCharacters) {
             this.sendFrom = this.gameCharacters[0].identifier;
           } else {
             this.sendFrom = this.myPeer.identifier;
           }
+        }
+        // ▲▲▲ 修正ここまで ▲▲▲
+          // if (0 < this.gameCharacters.length && this.onlyCharacters) {
+          //   this.sendFrom = this.gameCharacters[0].identifier;
+          // } else {
+          //   this.sendFrom = this.myPeer.identifier;
+          // }
+
+
         }
       })
       .on('DISCONNECT_PEER', event => {
@@ -369,6 +385,11 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     let statusChangeResult = ''; // ▼ 新規追加：結果を受け取る変数
     
     if (this.character) {
+
+      // ▼▼▼ 新規追加：ステータス変更解析の前に、テキスト内の最大値参照を数値に置換する ▼▼▼
+       this.text = this.replaceMaxValueReferences(this.text, this.character);
+       // ▲▲▲ 新規追加ここまで ▲▲▲
+       
        const elements = this.tachieElements;
        if (elements.length > 0 && this.tachieIndex < elements.length) {
          selectedTachieId = elements[this.tachieIndex].value as string;
@@ -422,6 +443,8 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     // ▲▲▲ 新規追加ここまで ▲▲▲
 
     this.text = '';
+
+    
   }
   // sendChat(event: Partial<KeyboardEvent>) {
   //   if (event) event.preventDefault();
@@ -541,58 +564,153 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     }
   }
 
+// ▼▼▼ 新規追加：{HP^} などの最大値参照を展開するメソッド ▼▼▼
+  private replaceMaxValueReferences(text: string, character: GameCharacter): string {
+    if (!text || !character) return text;
+    
+    // 正規表現で {属性名^} を探す（例：{HP^} なら attrName に "HP" が入る）
+    return text.replace(/\{([^}]+)\^\}/g, (match, attrName) => {
+      let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
+                      character.commonDataElement?.getFirstElementByName(attrName);
+                      
+      if (targetElm) {
+        // リソース型（最大値を持つデータ）かどうかを判定
+        const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
+        if (isResource && targetElm.value != null) {
+          // 最大値を文字列として返す（置換する）
+          return targetElm.value.toString();
+        }
+      }
+      // 見つからなかった場合や、最大値を持たないデータの場合は元の文字列をそのまま残す
+      return match;
+    });
+  }
+  // ▲▲▲ 新規追加ここまで ▲▲▲
 
-  // ▼▼▼ 新規追加：ステータス変更コマンドの解析・適用メソッド ▼▼▼
-// ▼▼▼ 修正：ステータス変更コマンドの解析・適用メソッド（結果文字列を返すように変更） ▼▼▼
+  // ▼▼▼ 変更：ステータス変更コマンドの高度な解析・適用メソッド（超高機能版） ▼▼▼
+// ▼▼▼ 変更：ステータス変更コマンドの高度な解析・適用メソッド（精密解析版） ▼▼▼
+// ▼▼▼ 変更：ステータス変更コマンドの高度な解析・適用メソッド（フラグ順不同対応版） ▼▼▼
   private applyStatusChanges(text: string, character: GameCharacter): string {
-    const regex = /:([^\s:+\-*/=]+)([+\-*/=])([^\s:]+)/g;
+    // 【修正】末尾のオプションフラグを (L?)(Z?) から ([LZ]*) に変更し、順不同で受け入れる
+    const regex = /:([^\s:+\-*/=^]+)(\^?)([+\-*/=])([0-9dD()+\-*/]+)([LZ]*)/g;
     let match;
     let isUpdated = false;
-    let results: string[] = []; // 結果を貯める配列
+    let results: string[] = [];
 
     while ((match = regex.exec(text)) !== null) {
       const attrName = match[1];
-      const operator = match[2];
-      const valueStr = match[3];
+      const isMax = match[2] === '^';
+      const operator = match[3];
+      const exprStr = match[4];
+      
+      // 【修正】取得したフラグ文字列の中に 'L' や 'Z' が含まれているかを判定する
+      const flags = match[5] || '';
+      const flagL = flags.includes('L');
+      const flagZ = flags.includes('Z');
 
       let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
                       character.commonDataElement?.getFirstElementByName(attrName);
 
       if (targetElm) {
         const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
-        const currentVal = isResource ? targetElm.currentValue : targetElm.value;
-
+        const currentVal = (isResource && !isMax) ? targetElm.currentValue : targetElm.value;
         const currentNum = Number(currentVal);
-        const valNum = Number(valueStr);
 
-        if (!Number.isNaN(currentNum) && !Number.isNaN(valNum)) {
-          let newVal = currentNum;
-          switch (operator) {
-            case '+': newVal += valNum; break;
-            case '-': newVal -= valNum; break;
-            case '*': newVal *= valNum; break;
-            case '/': newVal /= valNum; break;
-            case '=': newVal = valNum; break;
+        // 【大改修ポイント1】数式内のダイス(d/D)を個別にロールし、"合計[出目]"の形式に置換する
+        let displayExpr = exprStr.replace(/(\d*)[dD](\d*)/g, (m, countStr, faceStr) => {
+          let count = countStr === '' ? 1 : parseInt(countStr);
+          let faces = faceStr === '' ? 6 : parseInt(faceStr);
+          let sum = 0;
+          let localDiceResults: number[] = [];
+          for (let i = 0; i < count; i++) {
+            let r = Math.floor(Math.random() * faces) + 1;
+            sum += r;
+            localDiceResults.push(r);
+          }
+          return `${sum}[${localDiceResults.join(',')}]`;
+        });
+
+        // 計算用の純粋な数式（表示用の文字列から [出目] の部分だけを取り除く）
+        let evalExpr = displayExpr.replace(/\[.*?\]/g, '');
+
+        let newVal = currentNum;
+        let isCalculated = false;
+
+        // 【大改修ポイント2】現在の値(currentNum)を含めた1つの数式として安全に評価する
+        if (operator === '=') {
+          try {
+             let evaluated = new Function('"use strict";return (' + evalExpr + ')')();
+             if (!Number.isNaN(evaluated)) {
+                newVal = evaluated;
+                isCalculated = true;
+             }
+          } catch(e) { }
+        } else {
+          try {
+             // currentNum と 演算子 と 評価式 をそのまま繋げて計算する（例: 0 - 7 + 10）
+             let evaluated = new Function('"use strict";return (' + currentNum + operator + evalExpr + ')')();
+             if (!Number.isNaN(evaluated)) {
+                newVal = evaluated;
+                isCalculated = true;
+             }
+          } catch(e) { }
+        }
+
+        if (isCalculated) {
+          let delta = newVal - currentNum;
+          let limitText = "";
+
+          // 【機能3】Zフラグ（変更量の逆転防止を、実際の変動量deltaを元に正確に判定）
+          if (flagZ) {
+             if (operator === '+' && delta < 0) {
+               newVal = currentNum;
+               limitText += "(0制限)";
+             }
+             if (operator === '-' && delta > 0) {
+               newVal = currentNum;
+               limitText += "(0制限)";
+             }
           }
 
-          if (isResource) {
+          // 【機能4】Lフラグ（0〜最大値の範囲に収める）
+          if (flagL && isResource && !isMax) {
+             let maxNum = Number(targetElm.value);
+             if (!Number.isNaN(maxNum)) {
+                if (newVal > maxNum) {
+                   newVal = maxNum;
+                   limitText += "(最大)";
+                } else if (newVal < 0) {
+                   newVal = 0;
+                   limitText += "(最小)";
+                }
+             }
+          }
+
+          // データの保存
+          if (isResource && !isMax) {
             targetElm.currentValue = newVal;
           } else {
             targetElm.value = newVal;
           }
           isUpdated = true;
-          // 結果テキストを作成（例: HP:200+5>205）
-          results.push(`${attrName}:${currentNum}${operator}${valNum}>${newVal}`);
-        } 
-        else if (operator === '=') {
-          if (isResource) {
-            targetElm.currentValue = valueStr;
+
+          // 【大改修ポイント3】構築した displayExpr をそのままメッセージに組み込む
+          let attrLabel = isMax ? `${attrName}(最大値)` : attrName;
+          if (operator === '=') {
+             results.push(`${attrLabel}:${currentNum}＞${newVal}${limitText}`);
           } else {
-            targetElm.value = valueStr;
+             results.push(`${attrLabel}:${currentNum}${operator}${displayExpr}＞${newVal}${limitText}`);
+          }
+        } else if (operator === '=') {
+          // 数式として計算できなかった場合は、今まで通り文字列として代入する（例：:メモ=睡眠中）
+          if (isResource && !isMax) {
+            targetElm.currentValue = exprStr;
+          } else {
+            targetElm.value = exprStr;
           }
           isUpdated = true;
-          // 文字列の代入結果（例: メモ:通常>睡眠中）
-          results.push(`${attrName}:${currentVal}>${valueStr}`);
+          let attrLabel = isMax ? `${attrName}(最大値)` : attrName;
+          results.push(`${attrLabel}:${currentVal}＞${exprStr}`);
         }
       }
     }
@@ -601,8 +719,71 @@ export class ChatInputComponent implements OnInit, OnDestroy {
       character.update();
     }
     
-    // 複数の結果がある場合はスペース2つで区切って1つの文字列にする
     return results.join('  ');
   }
+  // ▲▲▲ 変更ここまで ▲▲▲
+  // ▲▲▲ 変更ここまで ▲▲▲
+  // ▼▼▼ 新規追加：ステータス変更コマンドの解析・適用メソッド ▼▼▼
+// ▼▼▼ 修正：ステータス変更コマンドの解析・適用メソッド（結果文字列を返すように変更） ▼▼▼
+  // private applyStatusChanges(text: string, character: GameCharacter): string {
+  //   const regex = /:([^\s:+\-*/=]+)([+\-*/=])([^\s:]+)/g;
+  //   let match;
+  //   let isUpdated = false;
+  //   let results: string[] = []; // 結果を貯める配列
+
+  //   while ((match = regex.exec(text)) !== null) {
+  //     const attrName = match[1];
+  //     const operator = match[2];
+  //     const valueStr = match[3];
+
+  //     let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
+  //                     character.commonDataElement?.getFirstElementByName(attrName);
+
+  //     if (targetElm) {
+  //       const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
+  //       const currentVal = isResource ? targetElm.currentValue : targetElm.value;
+
+  //       const currentNum = Number(currentVal);
+  //       const valNum = Number(valueStr);
+
+  //       if (!Number.isNaN(currentNum) && !Number.isNaN(valNum)) {
+  //         let newVal = currentNum;
+  //         switch (operator) {
+  //           case '+': newVal += valNum; break;
+  //           case '-': newVal -= valNum; break;
+  //           case '*': newVal *= valNum; break;
+  //           case '/': newVal /= valNum; break;
+  //           case '=': newVal = valNum; break;
+  //         }
+
+  //         if (isResource) {
+  //           targetElm.currentValue = newVal;
+  //         } else {
+  //           targetElm.value = newVal;
+  //         }
+  //         isUpdated = true;
+  //         // 結果テキストを作成（例: HP:200+5>205）
+  //         results.push(`${attrName}:${currentNum}${operator}${valNum}>${newVal}`);
+  //       } 
+  //       else if (operator === '=') {
+  //         if (isResource) {
+  //           targetElm.currentValue = valueStr;
+  //         } else {
+  //           targetElm.value = valueStr;
+  //         }
+  //         isUpdated = true;
+  //         // 文字列の代入結果（例: メモ:通常>睡眠中）
+  //         results.push(`${attrName}:${currentVal}>${valueStr}`);
+  //       }
+  //     }
+  //   }
+
+  //   if (isUpdated) {
+  //     character.update();
+  //   }
+    
+  //   // 複数の結果がある場合はスペース2つで区切って1つの文字列にする
+  //   return results.join('  ');
+  // }
   // ▲▲▲ 修正ここまで ▲▲▲
 }

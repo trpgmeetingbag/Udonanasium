@@ -56,6 +56,13 @@ export class ChatPaletteComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     Promise.resolve().then(() => this.updatePanelTitle());
+
+// ▼▼▼ 新規追加：内部のチャット入力コンポーネントにパレットモードであることを通知 ▼▼▼
+    if (this.chatInputComponent) {
+      this.chatInputComponent.isPaletteMode = true;
+    }
+    // ▲▲▲ 新規追加ここまで ▲▲▲
+
     this.chatTabidentifier = this.chatMessageService.chatTabs ? this.chatMessageService.chatTabs[0].identifier : '';
     this.gameType = this.character.chatPalette ? this.character.chatPalette.dicebot : '';
     EventSystem.register(this)
