@@ -161,55 +161,80 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
   }
 
 // --- START: システム設定用のデータ管理 ---
+// --- START: システム設定用のデータ管理（リリィ互換版） ---
   get hideInTableInventory(): boolean {
-    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
-    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-    if (!root) return false;
-    let el = root.getFirstElementByName('hideInTableInventory');
-    return el ? el.value === 'true' : false;
+    if (!this.tabletopObject) return false;
+    const val = this.tabletopObject.getAttribute('hideInventory');
+    return val === 'true';
   }
 
   set hideInTableInventory(value: boolean) {
-    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
-    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-    if (!root) {
-      root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
-      this.tabletopObject.detailDataElement.appendChild(root);
-    }
-    let el = root.getFirstElementByName('hideInTableInventory');
-    if (!el) {
-      el = DataElement.create('hideInTableInventory', value ? 'true' : 'false', {}, 'hideInTableInventory_' + this.tabletopObject.identifier);
-      root.appendChild(el);
-    } else {
-      el.value = value ? 'true' : 'false';
-    }
+    if (!this.tabletopObject) return;
+    this.tabletopObject.setAttribute('hideInventory', value ? 'true' : 'false');
     if (this.tabletopObject) this.tabletopObject.update();
   }
 
   get disableChat(): boolean {
-    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
-    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-    if (!root) return false;
-    let el = root.getFirstElementByName('disableChat');
-    return el ? el.value === 'true' : false;
+    if (!this.tabletopObject) return false;
+    const val = this.tabletopObject.getAttribute('nonTalkFlag');
+    return val === 'true';
   }
 
   set disableChat(value: boolean) {
-    if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
-    let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-    if (!root) {
-      root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
-      this.tabletopObject.detailDataElement.appendChild(root);
-    }
-    let el = root.getFirstElementByName('disableChat');
-    if (!el) {
-      el = DataElement.create('disableChat', value ? 'true' : 'false', {}, 'disableChat_' + this.tabletopObject.identifier);
-      root.appendChild(el);
-    } else {
-      el.value = value ? 'true' : 'false';
-    }
+    if (!this.tabletopObject) return;
+    this.tabletopObject.setAttribute('nonTalkFlag', value ? 'true' : 'false');
     if (this.tabletopObject) this.tabletopObject.update();
   }
+  // --- END ---
+  // get hideInTableInventory(): boolean {
+  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
+  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+  //   if (!root) return false;
+  //   let el = root.getFirstElementByName('hideInTableInventory');
+  //   return el ? el.value === 'true' : false;
+  // }
+
+  // set hideInTableInventory(value: boolean) {
+  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
+  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+  //   if (!root) {
+  //     root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
+  //     this.tabletopObject.detailDataElement.appendChild(root);
+  //   }
+  //   let el = root.getFirstElementByName('hideInTableInventory');
+  //   if (!el) {
+  //     el = DataElement.create('hideInTableInventory', value ? 'true' : 'false', {}, 'hideInTableInventory_' + this.tabletopObject.identifier);
+  //     root.appendChild(el);
+  //   } else {
+  //     el.value = value ? 'true' : 'false';
+  //   }
+  //   if (this.tabletopObject) this.tabletopObject.update();
+  // }
+
+  // get disableChat(): boolean {
+  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
+  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+  //   if (!root) return false;
+  //   let el = root.getFirstElementByName('disableChat');
+  //   return el ? el.value === 'true' : false;
+  // }
+
+  // set disableChat(value: boolean) {
+  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
+  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
+  //   if (!root) {
+  //     root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
+  //     this.tabletopObject.detailDataElement.appendChild(root);
+  //   }
+  //   let el = root.getFirstElementByName('disableChat');
+  //   if (!el) {
+  //     el = DataElement.create('disableChat', value ? 'true' : 'false', {}, 'disableChat_' + this.tabletopObject.identifier);
+  //     root.appendChild(el);
+  //   } else {
+  //     el.value = value ? 'true' : 'false';
+  //   }
+  //   if (this.tabletopObject) this.tabletopObject.update();
+  // }
   // --- END ---
 
 get tachiePosition(): number {

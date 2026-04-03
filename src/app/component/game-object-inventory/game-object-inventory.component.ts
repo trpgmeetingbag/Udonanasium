@@ -106,26 +106,45 @@ export class GameObjectInventoryComponent implements OnInit, OnDestroy {
 
   
 // --- START: インベントリ一覧のフィルタリング処理 ---
-  getGameObjects(inventoryType: string): TabletopObject[] {
+// --- START: インベントリ一覧のフィルタリング処理（リリィ互換版） ---
+getGameObjects(inventoryType: string): TabletopObject[] {
     let objects = this.getInventory(inventoryType).tabletopObjects;
     
-    // テーブルタブの場合のみ、非表示フラグがONのコマを除外する
     if (inventoryType === 'table') {
       return objects.filter(obj => {
-        // キャラクターコマかつ、詳細データを持っているか
-        if (obj.aliasName === 'character' && obj.detailDataElement) {
-          let root = obj.detailDataElement.getFirstElementByName('システム設定');
-          if (root) {
-            let el = root.getFirstElementByName('hideInTableInventory');
-            // フラグがtrueなら、一覧（配列）から除外（falseを返す）
-            if (el && el.value === 'true') {
-              return false;
-            }
+        if (obj.aliasName === 'character') {
+          const isHidden = obj.getAttribute('hideInventory');
+          // ▼▼▼ 修正 ▼▼▼
+          if (isHidden === 'true') {
+            return false;
           }
         }
-        return true; // それ以外のオブジェクトやフラグOFFのものは表示
+        return true;
       });
     }
+    
+    return objects;
+  // --- END ---
+  // getGameObjects(inventoryType: string): TabletopObject[] {
+  //   let objects = this.getInventory(inventoryType).tabletopObjects;
+    
+  //   // テーブルタブの場合のみ、非表示フラグがONのコマを除外する
+  //   if (inventoryType === 'table') {
+  //     return objects.filter(obj => {
+  //       // キャラクターコマかつ、詳細データを持っているか
+  //       if (obj.aliasName === 'character' && obj.detailDataElement) {
+  //         let root = obj.detailDataElement.getFirstElementByName('システム設定');
+  //         if (root) {
+  //           let el = root.getFirstElementByName('hideInTableInventory');
+  //           // フラグがtrueなら、一覧（配列）から除外（falseを返す）
+  //           if (el && el.value === 'true') {
+  //             return false;
+  //           }
+  //         }
+  //       }
+  //       return true; // それ以外のオブジェクトやフラグOFFのものは表示
+  //     });
+  //   }
     
     // テーブルタブ以外（個人、共有、墓場など）はそのまま全て返す
     return objects;

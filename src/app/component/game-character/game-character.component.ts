@@ -47,20 +47,33 @@ import { SelectionState, TabletopSelectionService } from 'service/tabletop-selec
   ]
 })
 export class GameCharacterComponent implements OnChanges, OnDestroy {
-  @Input() gameCharacter: GameCharacter = null;
+  @Input() gameCharacter: GameCharacter | null = null;
   @Input() is3D: boolean = false;
 
   get name(): string { return this.gameCharacter.name; }
   get size(): number { return MathUtil.clampMin(this.gameCharacter.size); }
 
-  // --- START: テーブルインベントリ非表示フラグの取得 ---
-  get hideInTableInventory(): boolean {
-    if (!this.gameCharacter || !this.gameCharacter.detailDataElement) return false;
-    let root = this.gameCharacter.detailDataElement.getFirstElementByName('システム設定');
-    if (!root) return false;
-    let el = root.getFirstElementByName('hideInTableInventory');
-    return el ? el.value === 'true' : false;
+  // ▼▼▼ 追加：発言しないフラグの取得 ▼▼▼
+  get disableChat(): boolean {
+    if (!this.gameCharacter) return false;
+    return this.gameCharacter.getAttribute('nonTalkFlag') === 'true';
   }
+  // ▲▲▲ 追加ここまで ▲▲▲
+  
+  // --- START: テーブルインベントリ非表示フラグの取得（リリィ互換版） ---
+  get hideInTableInventory(): boolean {
+    if (!this.gameCharacter) return false;
+    const val = this.gameCharacter.getAttribute('hideInventory');
+    return val === 'true';
+  }
+  // --- END ---
+  // get hideInTableInventory(): boolean {
+  //   if (!this.gameCharacter || !this.gameCharacter.detailDataElement) return false;
+  //   let root = this.gameCharacter.detailDataElement.getFirstElementByName('システム設定');
+  //   if (!root) return false;
+  //   let el = root.getFirstElementByName('hideInTableInventory');
+  //   return el ? el.value === 'true' : false;
+  // }
   // --- END ---
 
 // --- START: 盤面のコマ画像を動的に切り替えるロジック ---

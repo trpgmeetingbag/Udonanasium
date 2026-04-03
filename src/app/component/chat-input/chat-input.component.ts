@@ -504,17 +504,25 @@ export class ChatInputComponent implements OnInit, OnDestroy {
 
   private allowsChat(gameCharacter: GameCharacter): boolean {
 
-// ▼▼▼ 新規追加：「発言をしない」フラグのチェック ▼▼▼
-    if (gameCharacter.detailDataElement) {
-      let root = gameCharacter.detailDataElement.getFirstElementByName('システム設定');
-      if (root) {
-        let el = root.getFirstElementByName('disableChat');
-        // フラグが true なら発言不可（リストに表示しない）として弾く
-        if (el && el.value === 'true') {
-          return false; 
-        }
+    // ▼▼▼ 修正：「発言をしない」フラグのチェック（リリィ互換版） ▼▼▼
+    if (gameCharacter) {
+      const isDisable = gameCharacter.getAttribute('nonTalkFlag');
+      if (isDisable === 'true') {
+        return false; 
       }
     }
+    // ▲▲▲ 修正ここまで ▲▲▲
+// ▼▼▼ 新規追加：「発言をしない」フラグのチェック ▼▼▼
+    // if (gameCharacter.detailDataElement) {
+    //   let root = gameCharacter.detailDataElement.getFirstElementByName('システム設定');
+    //   if (root) {
+    //     let el = root.getFirstElementByName('disableChat');
+    //     // フラグが true なら発言不可（リストに表示しない）として弾く
+    //     if (el && el.value === 'true') {
+    //       return false; 
+    //     }
+    //   }
+    // }
     // ▲▲▲ 新規追加ここまで ▲▲▲
 
     switch (gameCharacter.location.name) {
