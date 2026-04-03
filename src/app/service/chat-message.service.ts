@@ -13,6 +13,10 @@ import { Network } from '@udonarium/core/system';
 import { GameCharacter } from '@udonarium/game-character';
 import { PeerCursor } from '@udonarium/peer-cursor';
 
+// ▼▼▼ 新規追加：音響システム ▼▼▼
+import { PresetSound, SoundEffect } from '@udonarium/sound-effect';
+// ▲▲▲ 新規追加ここまで ▲▲▲
+
 const HOURS = 60 * 60 * 1000;
 
 @Injectable()
@@ -40,6 +44,64 @@ export class ChatMessageService {
 // --- START: 入退室通知の初期化処理（NgZoneの注入） ---
   constructor(private ngZone: NgZone) {
     this.initializeSystemNotice();
+
+
+// ▼▼▼ 新規追加：全プレイヤーの画面で音を鳴らすためのイベント監視 ▼▼▼
+    
+    // 【ラグ対策】音声を事前に一度だけ読み込んでおく（ファイル名は適宜変更してください）
+    const customChime = new Audio('./assets/sounds/nc96723.mp3');
+    customChime.volume = 0.5; // 音量
+
+    let pendingChimeTimer: any = null; // ダイス判定待ち用のタイマー
+
+    const soundObserver = {};
+    EventSystem.register(soundObserver)
+      .on('MESSAGE_ADDED', event => {
+        let msg = ObjectStore.instance.get<ChatMessage>(event.data.messageIdentifier);
+        if (!msg) return;
+        if (msg.timestamp < this.getTime() - 3000) return;
+
+        // ▼ 【大改修】ダイスボットの結果が到着した場合は、着信音をキャンセルする（二重音防止）
+        if (msg.isDicebot) {
+           if (pendingChimeTimer) {
+              clearTimeout(pendingChimeTimer);
+              pendingChimeTimer = null;
+           }
+           return;
+        }
+
+        let text = String(msg.value || msg.text || '');
+        const isMacroCommand = /^:[^\s:+\-*/=^]+\^?[+\-*/=]/.test(text);
+        const isMacroResult = /^[^\s:+\-*/=^]+(?:\(最大値\))?:.*＞/.test(text);
+
+        // 【機能1】システムからのメッセージの場合
+        if (msg.tag === 'system' && msg.from === 'System') {
+           if (isMacroResult) {
+              if (/\[.*\]/.test(text)) {
+                 SoundEffect.play(PresetSound.diceRoll1); 
+              } else {
+                 customChime.currentTime = 0; // 音声の頭出し
+                 customChime.play().catch(e => {}); 
+              }
+           }
+        }
+        // 【機能2】プレイヤーからの通常発言の場合
+        else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
+           if (!isMacroCommand) {
+              if (pendingChimeTimer) {
+                 clearTimeout(pendingChimeTimer);
+              }
+              // ▼ 【大改修】50ミリ秒だけ待機する（この直後にダイス結果が来たら着信音はキャンセルされる）
+              pendingChimeTimer = setTimeout(() => {
+                 customChime.currentTime = 0; // 音声の頭出し
+                 customChime.play().catch(e => {}); 
+                 pendingChimeTimer = null;
+              }, 50); 
+           }
+        }
+      });
+    // ▲▲▲ 新規追加ここまで ▲▲▲
+    
   }
   // --- END ---
 
