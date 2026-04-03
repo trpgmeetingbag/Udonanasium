@@ -17,6 +17,10 @@ import { PeerCursor } from '@udonarium/peer-cursor';
 import { PresetSound, SoundEffect } from '@udonarium/sound-effect';
 // ▲▲▲ 新規追加ここまで ▲▲▲
 
+// ▼▼▼ 追加：システム音量を取得するためのクラス ▼▼▼
+import { AudioPlayer } from '@udonarium/core/file-storage/audio-player';
+// ▲▲▲ 追加ここまで ▲▲▲
+
 const HOURS = 60 * 60 * 1000;
 
 @Injectable()
@@ -80,8 +84,13 @@ export class ChatMessageService {
               if (/\[.*\]/.test(text)) {
                  SoundEffect.play(PresetSound.diceRoll1); 
               } else {
-                 customChime.currentTime = 0; // 音声の頭出し
+                 // ▼▼▼ 修正：再生直前にシステム音量と同期させる ▼▼▼
+                 customChime.volume = AudioPlayer.volume;
+                 customChime.currentTime = 0;
                  customChime.play().catch(e => {}); 
+                 // ▲▲▲ 修正ここまで ▲▲▲
+                //  customChime.currentTime = 0; // 音声の頭出し
+                //  customChime.play().catch(e => {}); 
               }
            }
         }
@@ -93,8 +102,14 @@ export class ChatMessageService {
               }
               // ▼ 【大改修】50ミリ秒だけ待機する（この直後にダイス結果が来たら着信音はキャンセルされる）
               pendingChimeTimer = setTimeout(() => {
-                 customChime.currentTime = 0; // 音声の頭出し
+                 // ▼▼▼ 修正：再生直前にシステム音量と同期させる ▼▼▼
+                 customChime.volume = AudioPlayer.volume;
+                 customChime.currentTime = 0; 
                  customChime.play().catch(e => {}); 
+                 // ▲▲▲ 修正ここまで ▲▲▲
+
+                //  customChime.currentTime = 0; // 音声の頭出し
+                //  customChime.play().catch(e => {}); 
                  pendingChimeTimer = null;
               }, 50); 
            }

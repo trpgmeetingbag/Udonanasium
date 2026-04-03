@@ -11,6 +11,10 @@ import { EventSystem } from './core/system';
 import { PromiseQueue } from './core/system/util/promise-queue';
 import { StringUtil } from './core/system/util/string-util';
 
+// ▼▼▼ 新規追加：色情報を引き継ぐためのクラス ▼▼▼
+import { DataElement } from './data-element';
+// ▲▲▲ 新規追加ここまで ▲▲▲
+
 interface DiceRollResult {
   id: string;
   result: string;
@@ -87,7 +91,26 @@ export class DiceBot extends GameObject {
       }
     }
     let chatTab = ObjectStore.instance.get<ChatTab>(originalMessage.tabIdentifier);
-    if (chatTab) chatTab.addMessage(diceBotMessage);
+    // if (chatTab) chatTab.addMessage(diceBotMessage);
+    // ▼▼▼ 修正：元の発言から色を取得し、ダイスボットの結果に引き継ぐ ▼▼▼
+    if (chatTab) {
+      let color = originalMessage.getAttribute('messColor');
+      
+      // 1. チャットタブに登録する前のデータ（Context）に色属性を持たせる
+      if (color) {
+        (diceBotMessage as any).messColor = color;
+      }
+      
+      // メッセージをチャットタブに追加して生成
+      let chat = chatTab.addMessage(diceBotMessage);
+      
+      // 2. 完全な互換性を保つため、生成されたメッセージの子要素としても色を追加する
+      if (chat && color) {
+        let colorElement = DataElement.create('color', color, {});
+        chat.appendChild(colorElement);
+      }
+    }
+    // ▲▲▲ 修正ここまで ▲▲▲
   }
 
   static async diceRollAsync(message: string, gameType: string): Promise<DiceRollResult> {
