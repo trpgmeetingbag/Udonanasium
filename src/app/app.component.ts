@@ -39,7 +39,8 @@ import { ModalService } from 'service/modal.service';
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 import { SaveDataService } from 'service/save-data.service';
-
+import { ImageTag } from '@udonarium/image-tag';
+import { ImageTagList } from '@udonarium/image-tag-list';
 
 
 @Component({

@@ -3,6 +3,9 @@ import { ChatTab } from '@udonarium/chat-tab';
 import { ChatTabList } from '@udonarium/chat-tab-list';
 import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
 import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
+// === ↓ 追加 ↓ ===
+import { ChatSettingsService } from 'service/chat-settings.service';
+// === ↑ 追加 ↑ ===
 
 @Component({
   selector: 'chat-tachie-img',
@@ -16,7 +19,10 @@ export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
   @ViewChild('tachieLayer', { static: true }) layerRef: ElementRef;
   posArray: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-  constructor(private elementRef: ElementRef) {}
+  constructor(
+    private elementRef: ElementRef,
+    public chatSettingsService: ChatSettingsService // ← これを追加
+  ) {}
 
   // 画面描画後、真のギロチン（scrollable-panel）から脱出し、大枠（draggable-panel）の直下へお引越しします
   ngAfterViewInit() {
@@ -42,6 +48,21 @@ export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
   get chatTabList(): ChatTabList {
     return ChatTabList.instance;
   }
+
+  // === ↓ ここから追加 ↓ ===
+  // 個人の表示フラグをサービスから取得
+  get tachieDispFlag(): boolean {
+    if (this.chatSettingsService.tachieDispMap[this.chatTabidentifier] === undefined) {
+      return true; // 初期状態は表示
+    }
+    return this.chatSettingsService.tachieDispMap[this.chatTabidentifier];
+  }
+
+  // 個人のサイズ設定をサービスから取得
+  get tachieHeightValue(): number {
+    return this.chatSettingsService.tachieHeightValue;
+  }
+  // === ↑ ここまで追加 ↑ ===
 
   // --- START: アクティブな立ち絵POSの取得ロジック ---
   // 現在アクティブ（不透明）にすべきPOS番号を取得します。誰も発言していない初期状態などは -1 を返します。

@@ -46,11 +46,46 @@ export class ChatTachieComponent {
     });
   }
 
-  // 表示フラグがONなら、設定された高さ分の「物理的な空間」をチャットウィンドウ内に確保する
+  // // 表示フラグがONなら、設定された高さ分の「物理的な空間」をチャットウィンドウ内に確保する
+  // get tachieAreaHeight(): number {
+  //   if (this.chatTab && this.chatTab.tachieDispFlag && this.chatTabList.isTachieInWindow) {
+  //     return this.chatTabList.tachieHeightValue;
+  //   }
+  //   return 0;
+  // }
+
+
+  // === ↓ ここから追加・修正 ↓ ===
+
+  // 1. ローカルの表示フラグを取得・設定する（タブごとに記憶）
+  get tachieDispFlag(): boolean {
+    if (this.chatSettingsService.tachieDispMap[this.chatTabidentifier] === undefined) {
+      return true; // 初期状態は表示(true)
+    }
+    return this.chatSettingsService.tachieDispMap[this.chatTabidentifier];
+  }
+
+  set tachieDispFlag(value: boolean) {
+    this.chatSettingsService.tachieDispMap[this.chatTabidentifier] = value;
+  }
+
+  // 2. ローカルのサイズを取得・設定する
+  get tachieHeightValue(): number {
+    return this.chatSettingsService.tachieHeightValue;
+  }
+
+  set tachieHeightValue(value: number) {
+    this.chatSettingsService.tachieHeightValue = value;
+  }
+
+  // 3. 表示領域の計算（chatTabの共有フラグではなく、個人のローカルフラグを見るように変更）
   get tachieAreaHeight(): number {
-    if (this.chatTab && this.chatTab.tachieDispFlag && this.chatTabList.isTachieInWindow) {
-      return this.chatTabList.tachieHeightValue;
+    // 修正: this.chatTab.tachieDispFlag を this.tachieDispFlag に変更
+    // 修正: this.chatTabList.tachieHeightValue を this.tachieHeightValue に変更
+    if (this.chatTab && this.tachieDispFlag && this.chatTabList.isTachieInWindow) {
+      return this.tachieHeightValue;
     }
     return 0;
   }
+  // === ↑ ここまで追加・修正 ↑ ===
 }

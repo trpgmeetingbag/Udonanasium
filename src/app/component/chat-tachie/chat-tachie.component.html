@@ -1,13 +1,15 @@
 <div class="tachie-controls">
   <ng-container *ngIf="chatTab">
     <label>
-      <input type="checkbox" [(ngModel)]="chatTab.tachieDispFlag"> 立ち絵表示
+      <!-- <input type="checkbox" [(ngModel)]="chatTab.tachieDispFlag"> 立ち絵表示 -->
+      <input type="checkbox" [(ngModel)]="tachieDispFlag"> 立ち絵表示
     </label>
   </ng-container>
   <span *ngIf="!chatTab">立ち絵表示</span>
   
   / サイズ:
-  <input type="number" [(ngModel)]="chatTabList.tachieHeightValue"
+  <!-- <input type="number" [(ngModel)]="chatTabList.tachieHeightValue" -->
+  <input type="number" [(ngModel)]="tachieHeightValue"
          [min]="chatTabList.minTachieSize" [max]="chatTabList.maxTachieSize"
          class="size-input" />
 

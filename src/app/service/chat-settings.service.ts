@@ -8,6 +8,9 @@ export class ChatSettingsService {
   // 設定変更を各コンポーネントに通知するためのイベント
   public settingsChanged = new EventEmitter<void>();
 
+  tachieHeightValue: number = 200; // 個人の立ち絵サイズ（初期値）
+  tachieDispMap: { [tabIdentifier: string]: boolean } = {}; // タブごとの表示状態（ローカル）
+
   // 内部変数とGetter/Setter（値が変わるたびに emit して通知する）
   private _isSimpleMode: boolean = false;
   get isSimpleMode(): boolean { return this._isSimpleMode; }

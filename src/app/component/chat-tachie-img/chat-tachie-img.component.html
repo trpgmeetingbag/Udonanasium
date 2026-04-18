@@ -1,20 +1,15 @@
 <div #tachieLayer class="tachie-layer">
-  <div class="tachie-image-box" *ngIf="chatTab && chatTab.tachieDispFlag">
+  <!-- <div class="tachie-image-box" *ngIf="chatTab && chatTab.tachieDispFlag"> -->
+  <div class="tachie-image-box" *ngIf="chatTab && tachieDispFlag">
     <ng-container *ngFor="let pos of posArray">
-      <!-- <img *ngIf="getImageUrl(pos)"
-           class="tachie-image"
-           [src]="getImageUrl(pos) | safe: 'resourceUrl'"
-           [style.left]="getLeftStyle(pos)"
-           [style.transform]="getTransformStyle(pos)"
-           [style.height.px]="chatTabList.tachieHeightValue"
-           (mousedown)="tachieClick(pos)"
-           draggable="false" /> -->
+
       <img *ngIf="getImageUrl(pos)"
            class="tachie-image"
            [src]="getImageUrl(pos) | safe: 'resourceUrl'"
            [style.left.%]="(pos / 11) * 100"
            [style.transform]="getTransformStyle(pos)"
-           [style.height.px]="chatTabList.tachieHeightValue"
+           
+           [style.height.px]="tachieHeightValue"
            [style.opacity]="activePos === -1 || activePos === pos ? 1 : 0.5"
            (mousedown)="tachieClick(pos)"
            draggable="false" />

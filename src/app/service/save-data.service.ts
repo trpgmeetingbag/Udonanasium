@@ -10,6 +10,9 @@ import { PromiseQueue } from '@udonarium/core/system/util/promise-queue';
 import { XmlUtil } from '@udonarium/core/system/util/xml-util';
 import { DataSummarySetting } from '@udonarium/data-summary-setting';
 import { Room } from '@udonarium/room';
+// === ↓ ここに1行追加 ↓ ===
+import { ImageTagList } from '@udonarium/image-tag-list';
+// === ↑ ここまで ↑ ===
 
 import Beautify from 'vkbeautify';
 
@@ -38,8 +41,22 @@ export class SaveDataService {
     files.push(new File([chatXml], 'chat.xml', { type: 'text/plain' }));
     files.push(new File([summarySetting], 'summary.xml', { type: 'text/plain' }));
 
-    files = files.concat(this.searchImageFiles(roomXml));
-    files = files.concat(this.searchImageFiles(chatXml));
+// === ↓ ここからリリィ版（PR#92）のロジックに変更 ↓ ===
+    let images: ImageFile[] = [];
+    images = images.concat(this.searchImageFiles(roomXml));
+    images = images.concat(this.searchImageFiles(chatXml));
+    for (const image of images) {
+      if (image.state === ImageState.COMPLETE) {
+        files.push(new File([image.blob], image.identifier + '.' + MimeType.extension(image.blob.type), { type: image.blob.type }));
+      }
+    }
+
+    let imageTagXml = this.convertToXml(ImageTagList.create(images));
+    files.push(new File([imageTagXml], 'imagetag.xml', { type: 'text/plain' }));
+    // === ↑ ここまで変更 ↑ ===
+
+    // files = files.concat(this.searchImageFiles(roomXml));
+    // files = files.concat(this.searchImageFiles(chatXml));
 
     return this.saveAsync(files, this.appendTimestamp(fileName), updateCallback);
   }
@@ -48,12 +65,24 @@ export class SaveDataService {
     return SaveDataService.queue.add((resolve, reject) => resolve(this._saveGameObjectAsync(gameObject, fileName, updateCallback)));
   }
 
-  private _saveGameObjectAsync(gameObject: GameObject, fileName: string = 'xml_data', updateCallback?: UpdateCallback): Promise<void> {
+private _saveGameObjectAsync(gameObject: GameObject, fileName: string = 'xml_data', updateCallback?: UpdateCallback): Promise<void> {
     let files: File[] = [];
     let xml: string = this.convertToXml(gameObject);
 
     files.push(new File([xml], 'data.xml', { type: 'text/plain' }));
-    files = files.concat(this.searchImageFiles(xml));
+    
+    // === ↓ ここからリリィ版（PR#92）のロジックに変更 ↓ ===
+    let images: ImageFile[] = [];
+    images = images.concat(this.searchImageFiles(xml));
+    for (const image of images) {
+      if (image.state === ImageState.COMPLETE) {
+        files.push(new File([image.blob], image.identifier + '.' + MimeType.extension(image.blob.type), { type: image.blob.type }));
+      }
+    }
+
+    let imageTagXml = this.convertToXml(ImageTagList.create(images));
+    files.push(new File([imageTagXml], 'imagetag.xml', { type: 'text/plain' }));
+    // === ↑ ここまで変更 ↑ ===
 
     return this.saveAsync(files, this.appendTimestamp(fileName), updateCallback);
   }
@@ -73,9 +102,9 @@ export class SaveDataService {
     return xmlDeclaration + '\n' + Beautify.xml(gameObject.toXml(), 2);
   }
 
-  private searchImageFiles(xml: string): File[] {
+private searchImageFiles(xml: string): ImageFile[] {
     let xmlElement: Element = XmlUtil.xml2element(xml);
-    let files: File[] = [];
+    let files: ImageFile[] = [];
     if (!xmlElement) return files;
 
     let images: { [identifier: string]: ImageFile } = {};
@@ -97,8 +126,8 @@ export class SaveDataService {
     }
     for (let identifier in images) {
       let image = images[identifier];
-      if (image && image.state === ImageState.COMPLETE) {
-        files.push(new File([image.blob], image.identifier + '.' + MimeType.extension(image.blob.type), { type: image.blob.type }));
+      if (image) {
+        files.push(image);
       }
     }
     return files;
