@@ -96,9 +96,36 @@ export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
 // --- END ---
 
   // 画像クリックでそのPOSの立ち絵を消す
-  tachieClick(pos: number) {
-    if (this.chatTab) {
-      this.chatTab.tachiePosHide(pos);
-    }
+  // tachieClick(pos: number) {
+  //   if (this.chatTab) {
+  //     this.chatTab.tachiePosHide(pos);
+  //   }
+  // }
+
+  // === ↓ 修正・追加箇所 ↓ ===
+
+  // 1. 指定した位置が「自分だけ」非表示に設定されているか確認するゲッター
+  isPosHidden(pos: number): boolean {
+    const hiddenArray = this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier];
+    return hiddenArray ? !!hiddenArray[pos] : false;
   }
+
+  // 2. 画像クリック時の処理を書き換え
+  tachieClick(pos: number) {
+    // 共有データの chatTab.tachiePosHide(pos) は呼ばない（同期を防ぐ）
+    
+    // 自分のローカル設定を更新する
+    if (!this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier]) {
+      // まだデータがない場合は、12ポジション分(false)の配列を作成
+      this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier] = new Array(12).fill(false);
+    }
+    
+    // 現在の状態を反転させる（クリックするたびに 消える <-> 出る を切り替え可能にする）
+    const currentState = this.isPosHidden(pos);
+    this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier][pos] = !currentState;
+  }
+
+  // (※もし以前の実装で getImageUrl 内で chatTab の非表示状態を参照していた場合は、
+  // そこも pure な画像取得だけに留めるようにします)
+  // === ↑ 修正・追加箇所ここまで ↑ ===
 }

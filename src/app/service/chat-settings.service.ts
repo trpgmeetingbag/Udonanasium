@@ -32,6 +32,10 @@ export class ChatSettingsService {
   get showIdInSimpleMode(): boolean { return this._showIdInSimpleMode; }
   set showIdInSimpleMode(value: boolean) { this._showIdInSimpleMode = value; this.settingsChanged.emit(); }
 
+// 追加: タブごとの各ポジション(0〜11)の非表示状態を管理するマップ
+  // { 'タブID': [false, true, false, ...] } のような形式で保持します
+  tachieHiddenPosMap: { [tabIdentifier: string]: boolean[] } = {};
+
   constructor() { }
 }
 
