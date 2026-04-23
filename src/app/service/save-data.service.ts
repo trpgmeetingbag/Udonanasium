@@ -13,6 +13,8 @@ import { Room } from '@udonarium/room';
 // === ↓ ここに1行追加 ↓ ===
 import { ImageTagList } from '@udonarium/image-tag-list';
 // === ↑ ここまで ↑ ===
+import { ChatTab } from '@udonarium/chat-tab';
+import { saveAs } from 'file-saver';
 
 import Beautify from 'vkbeautify';
 
@@ -132,6 +134,32 @@ private searchImageFiles(xml: string): ImageFile[] {
     }
     return files;
   }
+
+  // === ↓ ここから追加（HTMLファイル出力処理） ↓ ===
+  saveHtmlChatLog(chatTab: ChatTab, fileName: string ){
+    let text: string = chatTab.logHtml();
+    let blob = new Blob( [text], {type: "text/plain;charset=utf-8"});
+    saveAs(blob, fileName + ".html");
+  }
+
+saveHtmlChatLogAll( fileName: string ){
+    let text: string = (ChatTabList.instance as any).logHtml(); // as any を追加
+    let blob = new Blob( [text], {type: "text/plain;charset=utf-8"});
+    saveAs(blob, fileName + ".html");
+  }
+
+  saveHtmlChatLogCoc(chatTab: ChatTab, fileName: string ){
+    let text: string = chatTab.logHtmlCoc();
+    let blob = new Blob( [text], {type: "text/plain;charset=utf-8"});
+    saveAs(blob, fileName + ".html");
+  }
+
+saveHtmlChatLogAllCoc( fileName: string ){
+    let text: string = (ChatTabList.instance as any).logHtmlCoc(); // as any を追加
+    let blob = new Blob( [text], {type: "text/plain;charset=utf-8"});
+    saveAs(blob, fileName + ".html");
+  }
+  // === ↑ ここまで追加 ↑ ===
 
   private appendTimestamp(fileName: string): string {
     let date = new Date();

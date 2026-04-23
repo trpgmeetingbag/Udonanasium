@@ -48,6 +48,18 @@
         </ng-container>
       </div>
     </ng-container>
+
+<hr>
+        <div>
+          <button (click)="saveLog()" style="width:9em">ログ保存</button>
+          <span style="font-size:12px">リストから選んだログを保存</span><br>
+          <button (click)="saveAllLog()" style="width:9em">全タブログ保存</button>
+          <span style="font-size:12px">時系列順にまとめて保存</span><br>
+          <span>にわとりさん風の形式にする</span>
+          <input type="checkbox" [(ngModel)]="modeCocLog"><br>
+        </div>
+        <hr>
+
   </div>
 </div>
 <ng-container *ngIf="isEmpty">

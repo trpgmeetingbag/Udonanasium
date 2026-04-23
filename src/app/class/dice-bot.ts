@@ -105,10 +105,10 @@ export class DiceBot extends GameObject {
       let chat = chatTab.addMessage(diceBotMessage);
       
       // 2. 完全な互換性を保つため、生成されたメッセージの子要素としても色を追加する
-      if (chat && color) {
-        let colorElement = DataElement.create('color', color, {});
-        chat.appendChild(colorElement);
-      }
+      // if (chat && color) {
+      //   let colorElement = DataElement.create('color', color, {});
+      //   chat.appendChild(colorElement);
+      // }
     }
     // ▲▲▲ 修正ここまで ▲▲▲
   }

@@ -11,6 +11,8 @@ import { ModalService } from 'service/modal.service';
 import { PanelService } from 'service/panel.service';
 import { SaveDataService } from 'service/save-data.service';
 
+import { Network } from '@udonarium/core/system';
+
 @Component({
   selector: 'app-chat-tab-setting',
   templateUrl: './chat-tab-setting.component.html',
@@ -53,6 +55,7 @@ export class ChatTabSettingComponent implements OnInit, OnDestroy {
 
   isSaveing: boolean = false;
   progresPercent: number = 0;
+  modeCocLog = false; // にわとりさん風(CoC)形式フラグ
 
   constructor(
     private modalService: ModalService,
@@ -102,6 +105,35 @@ export class ChatTabSettingComponent implements OnInit, OnDestroy {
       this.progresPercent = 0;
     }, 500);
   }
+
+  // === ↓ ここから追加（UIからの処理） ↓ ===
+  get roomName(): string {
+    return Network.peer && 0 < Network.peer.roomName.length ? Network.peer.roomName : 'ルームデータ';
+  }
+
+  private appendTimestamp(fileName: string): string {
+    let date = new Date();
+    let year = date.getFullYear();
+    let month = ('00' + (date.getMonth() + 1)).slice(-2);
+    let day = ('00' + date.getDate()).slice(-2);
+    let hours = ('00' + date.getHours()).slice(-2);
+    let minutes = ('00' + date.getMinutes()).slice(-2);
+    return fileName + `_${year}-${month}-${day}_${hours}${minutes}`;
+  }
+
+  saveLog(){
+    if (!this.selectedTab) return;
+    let fileName: string = this.appendTimestamp(this.roomName + '_log_' + this.selectedTab.name);
+    if (this.modeCocLog) this.saveDataService.saveHtmlChatLogCoc(this.selectedTab, fileName);
+    else this.saveDataService.saveHtmlChatLog(this.selectedTab, fileName);
+  }
+
+  saveAllLog(){
+    let fileName: string = this.appendTimestamp(this.roomName + '_log_' + '全タブ');
+    if (this.modeCocLog) this.saveDataService.saveHtmlChatLogAllCoc(fileName);
+    else this.saveDataService.saveHtmlChatLogAll(fileName);
+  }
+  // === ↑ ここまで追加 ↑ ===
 
   delete() {
     if (!this.isEmpty && this.selectedTab) {
