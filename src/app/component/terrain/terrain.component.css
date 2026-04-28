@@ -194,3 +194,72 @@
   0% { opacity:0.9; }
   100% { opacity:0.5; }
 }
+/* === ↓ 追加 ↓ === */
+.fall {
+  -webkit-transition: transform 132ms ease-in-out;
+  transition: transform 132ms ease-in-out;
+}
+
+.altitude-indicator {
+  padding-left: 2px;
+  font-size: 11px;
+  font-weight: bolder;
+  color: blanchedalmond;
+  text-shadow: #444 0px 0px 3px;
+  backface-visibility: hidden;
+}
+
+.lock-icon {
+  background-color: #CCCCCC;
+  border-radius: 100%;
+  color: #444;
+  width: 25px;
+  height: 25px;
+  pointer-events: none;
+}
+
+.is-center {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+}
+/* === ↑ 追加ここまで ↑ === */
+/* === ↓ 追加：壁の傾斜と陰影オフ ↓ === */
+.of-wall-top.is-slope, .of-wall-bottom.is-slope, .of-wall-left.is-slope, .of-wall-right.is-slope {
+  -webkit-clip-path: polygon(100% 0%, 0% 100%, 100% 100%) !important;
+  clip-path: polygon(100% 0%, 0% 100%, 100% 100%) !important;
+}
+
+.of-wall-top.is-inverse-slope, .of-wall-bottom.is-inverse-slope, .of-wall-left.is-inverse-slope, .of-wall-right.is-inverse-slope {
+  -webkit-clip-path: polygon(0% 0%, 100% 100%, 0% 100%) !important;
+  clip-path: polygon(0% 0%, 100% 100%, 0% 100%) !important;
+}
+
+/* !important を付与して元々の filter 処理（暗くする処理）を強制的に解除します */
+.of-wall-top.no-shadow, .of-wall-left.no-shadow, .of-wall-right.no-shadow {
+  filter: brightness(1.0) !important; 
+}
+/* === ↑ ここまで ↑ === */
+/* === ↓ 追加：グリッドキャンバス用 ↓ === */
+.grid-canvas {
+  opacity: 0.0;
+  transform: translateZ(0.15px);
+  -webkit-transition: 0.3s ease-out;
+  transition: 0.3s ease-out;
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.is-fill {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  margin: auto;
+}
+/* === ↑ ここまで ↑ === */

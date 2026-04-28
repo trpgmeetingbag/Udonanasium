@@ -8,6 +8,7 @@ import { FileSelecterComponent } from 'component/file-selecter/file-selecter.com
 import { ModalService } from 'service/modal.service';
 import { PanelService } from 'service/panel.service';
 import { SaveDataService } from 'service/save-data.service';
+import { GameCharacter } from '@udonarium/game-character';
 
 @Component({
   selector: 'game-character-sheet',
@@ -162,17 +163,8 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
 
 // --- START: システム設定用のデータ管理 ---
 // --- START: システム設定用のデータ管理（リリィ互換版） ---
-  get hideInTableInventory(): boolean {
-    if (!this.tabletopObject) return false;
-    const val = this.tabletopObject.getAttribute('hideInventory');
-    return val === 'true';
-  }
 
-  set hideInTableInventory(value: boolean) {
-    if (!this.tabletopObject) return;
-    this.tabletopObject.setAttribute('hideInventory', value ? 'true' : 'false');
-    if (this.tabletopObject) this.tabletopObject.update();
-  }
+
 
   get disableChat(): boolean {
     if (!this.tabletopObject) return false;
@@ -479,4 +471,48 @@ get tachieElements(): DataElement[] {
   //   if (root) root.removeChild(element);
   // }
 // --- END ---
+// --- START: リリィ互換 表示サイズ設定メソッド ---
+  chkKomaSize(height: number) {
+    let character = <GameCharacter>this.tabletopObject;
+    if (height < 50) height = 50;
+    if (height > 750) height = 750;
+    character.komaImageHeignt = height;
+  }
+
+  chkPopWidth(width: number) {
+    let character = <GameCharacter>this.tabletopObject;
+    if (width < 270) width = 270;
+    if (width > 1000) width = 1000; // リリィのバグ修正：スライダー上限に合わせて1000を最大値とする
+    character.overViewWidth = width;
+  }
+
+  chkPopMaxHeight(maxHeight: number) {
+    let character = <GameCharacter>this.tabletopObject;
+    if (maxHeight < 250) maxHeight = 250;
+    if (maxHeight > 1000) maxHeight = 1000;
+    character.overViewMaxHeight = maxHeight;
+  }
+// --- END ---
+
+// --- システム設定用のデータ管理（修正版） ---
+// --- システム設定用のデータ管理（リリィ互換・属性ベースに戻す） ---
+set hideInTableInventory(value: boolean) {
+    if (!this.tabletopObject) return;
+    const character = this.tabletopObject as GameCharacter;
+
+    // 1. プロパティを更新（インベントリのフィルタ用）
+    character.hideInventory = value;
+    
+    // 2. 属性を更新（盤面のコマの表示色・互換性用）
+    character.setAttribute('hideInventory', value ? 'true' : 'false');
+
+    // 3. 強制再描画のトリガー（リリィ版の知恵）
+    character.syncDummyCounter++;
+    character.update();
+    EventSystem.trigger('UPDATE_INVENTORY', null);
+  }
+
+
+
+
 }

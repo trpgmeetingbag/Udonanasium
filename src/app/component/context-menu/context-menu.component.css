@@ -80,3 +80,16 @@ ul > li.hasHighlight:hover {
   color: #CCC;
   background-color: rgba(30, 30, 30, 0.8);
 }
+input.altitude {
+  /* 最新のブラウザ仕様に合わせた縦型スライダーの記述 */
+  writing-mode: vertical-lr;
+  direction: rtl;
+  appearance: auto;
+  -webkit-appearance: auto;
+  
+  width: 8px;
+  height: 200px;
+  padding: 3px;
+}
+.altitude-view { color: black; vertical-align: top; width: 3em; text-align: right; }
+.ruler { color: #444; font-size: small; padding-left: 4px; padding-right: 2px; }

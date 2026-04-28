@@ -25,6 +25,16 @@ export class ContextMenuComponent implements OnInit, OnDestroy, AfterViewInit {
 
   get isPointerDragging(): boolean { return this.pointerDeviceService.isDragging || this.pointerDeviceService.isTablePickGesture; }
 
+// === ↓ ここから追加 ↓ ===
+  get altitudeHande(): any { 
+    for (let action of this.actions) {
+      if (action && action.altitudeHande) return action.altitudeHande;
+    }
+    return null;
+  }
+  // === ↑ ここまで追加 ↑ ===
+
+
   constructor(
     private elementRef: ElementRef<HTMLElement>,
     public contextMenuService: ContextMenuService,

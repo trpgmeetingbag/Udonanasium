@@ -34,7 +34,7 @@
     <option value="graveyard">墓地</option>
   </select>
 
-  <div class="system-settings-container">
+  <!-- <div class="system-settings-container">
     <label class="system-setting-item">
       <span class="system-setting-label">テーブルインベントリ非表示</span>
       <input type="checkbox" [(ngModel)]="hideInTableInventory" />
@@ -43,6 +43,72 @@
       <span class="system-setting-label">発言をしない</span>
       <input type="checkbox" [(ngModel)]="disableChat" />
     </label>
+    <div class="tachie-box-styled">
+      <div class="tachie-section-title">表示サイズ設定</div>
+      
+      <label class="system-setting-item">
+        <span class="system-setting-label">ポップアップ横幅</span>
+        <input type="range" min="270" max="1000" [(ngModel)]="$any(tabletopObject).overViewWidth" style="width: 100px; margin-right: 8px;">
+        <input type="number" min="270" max="1000" [(ngModel)]="$any(tabletopObject).overViewWidth" (change)="chkPopWidth($any($event.target).value)" style="width: 60px; color: #CCC; background: #111; border: 1px solid #444;">
+      </label>
+
+      <label class="system-setting-item">
+        <span class="system-setting-label">ポップアップ縦幅最大</span>
+        <input type="range" min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" style="width: 100px; margin-right: 8px;">
+        <input type="number" min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" (change)="chkPopMaxHeight($any($event.target).value)" style="width: 60px; color: #CCC; background: #111; border: 1px solid #444;">
+      </label>
+
+      <div style="border-top: 1px solid #555; margin: 8px 0;"></div>
+
+      <label class="system-setting-item">
+        <span class="system-setting-label">コマ画像の高さを指定</span>
+        <input type="checkbox" [(ngModel)]="$any(tabletopObject).specifyKomaImageFlag" />
+      </label>
+
+      <label class="system-setting-item" [style.opacity]="$any(tabletopObject).specifyKomaImageFlag ? 1 : 0.5">
+        <span class="system-setting-label">コマ画像の高さ</span>
+        <input type="range" min="50" max="750" [(ngModel)]="$any(tabletopObject).komaImageHeignt" [disabled]="!$any(tabletopObject).specifyKomaImageFlag" style="width: 100px; margin-right: 8px;">
+        <input type="number" min="50" max="750" [(ngModel)]="$any(tabletopObject).komaImageHeignt" (change)="chkKomaSize($any($event.target).value)" [disabled]="!$any(tabletopObject).specifyKomaImageFlag" style="width: 60px; color: #CCC; background: #111; border: 1px solid #444;">
+      </label>
+    </div>
+  </div> -->
+  <div class="extra-setting" style="display:table; width: 100%;">
+    <div class="extra-setting" style="width:50%;display:table-cell; text-align: right; padding-right: 10px;">
+      <div>
+        テーブルインベントリ非表示
+        <input type="checkbox" [(ngModel)]="hideInTableInventory">
+      </div>
+
+      <div>
+        発言をしない
+        <input type="checkbox" [(ngModel)]="disableChat">
+      </div>
+      <div>
+        ポップアップ横幅
+        <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+        min="270" max="1000" [(ngModel)]="$any(tabletopObject).overViewWidth" />
+        <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewWidth" type="number" style="width:4em; color: #555;"
+        min="270" max="1000" (change)="chkPopWidth($any($event.target).value)" />
+      </div>
+      <div>
+        ポップアップ縦幅最大
+        <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+        min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" />
+        <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" type="number" style="width:4em; color: #555;"
+        min="250" max="1000" (change)="chkPopMaxHeight($any($event.target).value)" />
+      </div>
+    </div>
+    <div class="extra-setting" style="width:50%;display:table-cell; text-align: right; padding-left: 10px;">
+      コマ画像の高さを指定
+      <input type="checkbox" [(ngModel)]="$any(tabletopObject).specifyKomaImageFlag">
+      <div>
+        コマ画像の高さ
+        <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+        min="50" max="750" [(ngModel)]="$any(tabletopObject).komaImageHeignt" [disabled]="!$any(tabletopObject).specifyKomaImageFlag" />
+        <input class="is-caret" [(ngModel)]="$any(tabletopObject).komaImageHeignt" type="number" style="width:4em; color: #555;"
+        min="50" max="750" (change)="chkKomaSize($any($event.target).value)" [disabled]="!$any(tabletopObject).specifyKomaImageFlag"/>
+      </div>
+    </div>
   </div>
 
 </ng-container>

@@ -23,6 +23,8 @@ import { ContextMenuAction, ContextMenuSeparator, ContextMenuService } from 'ser
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 import { SelectionState, TabletopSelectionService } from 'service/tabletop-selection.service';
+import { InputHandler } from 'directive/input-handler';
+import { ElementRef, NgZone /* 他の既存のもの... */ } from '@angular/core';
 
 @Component({
   selector: 'game-character',
@@ -49,6 +51,24 @@ import { SelectionState, TabletopSelectionService } from 'service/tabletop-selec
 export class GameCharacterComponent implements OnChanges, OnDestroy {
   @Input() gameCharacter: GameCharacter | null = null;
   @Input() is3D: boolean = false;
+
+  private input: InputHandler = null;
+
+
+  // === ↓ ここから追加（エラー解消のためのGetter/Setter） ↓ ===
+  get isAltitudeIndicate(): boolean { return this.gameCharacter.isAltitudeIndicate; }
+  set isAltitudeIndicate(isAltitudeIndicate: boolean) { this.gameCharacter.isAltitudeIndicate = isAltitudeIndicate; }
+
+  get isDropShadow(): boolean { return this.gameCharacter.isDropShadow; }
+  set isDropShadow(isDropShadow: boolean) { this.gameCharacter.isDropShadow = isDropShadow; }
+
+  get isLock(): boolean { return this.gameCharacter.isLock; }
+  set isLock(isLock: boolean) { this.gameCharacter.isLock = isLock; }
+
+  get specifyKomaImageFlag(): boolean { return this.gameCharacter.specifyKomaImageFlag; }
+  get komaImageHeignt(): number { return this.gameCharacter.komaImageHeignt; }
+  
+  // === ↑ ここまで追加 ↑ ===
 
   get name(): string { return this.gameCharacter.name; }
   get size(): number { return MathUtil.clampMin(this.gameCharacter.size); }
@@ -112,6 +132,28 @@ get imageFile(): ImageFile {
   // get imageFile(): ImageFile { return this.gameCharacter.imageFile; }
 
 
+  // === ↓ ここから追加 ↓ ===
+  // コマの高度情報を取得・設定する窓口
+  get altitude(): number { return this.gameCharacter.altitude; }
+  set altitude(altitude: number) { this.gameCharacter.altitude = altitude; }
+
+  // カメラの回転角度（インジケーターの描画用）
+  viewRotateZ = 10; 
+  // === ↑ ここまで追加 ↑ ===
+  // === ↓ ここから追加 ↓ ===
+  math = Math; // HTML側で Math.abs 等を使うため
+  
+  // 地形高度(posZ)とキャラクター自身の高度(altitude)を合算した「海抜」
+  get elevation(): number {
+    return +((this.gameCharacter.posZ + (this.altitude * this.gridSize)) / this.gridSize).toFixed(1);
+  }
+
+  // 吹き出し等の位置調整用（今回は初期値0でOKです）
+  get chatBubbleAltitude(): number {
+    return 0;
+  }
+  // === ↑ ここまで追加 ↑ ===
+
 
   get rotate(): number { return this.gameCharacter.rotate; }
   set rotate(rotate: number) { this.gameCharacter.rotate = rotate; }
@@ -133,7 +175,9 @@ get imageFile(): ImageFile {
     private panelService: PanelService,
     private changeDetector: ChangeDetectorRef,
     private selectionService: TabletopSelectionService,
-    private pointerDeviceService: PointerDeviceService
+    private pointerDeviceService: PointerDeviceService,
+    private ngZone: NgZone,
+    private elementRef: ElementRef<HTMLElement>
   ) { }
 
   ngOnChanges(): void {
@@ -179,7 +223,7 @@ get imageFile(): ImageFile {
     e.preventDefault();
   }
 
-  @HostListener('contextmenu', ['$event'])
+    @HostListener('contextmenu', ['$event'])
   onContextMenu(e: Event) {
     e.stopPropagation();
     e.preventDefault();
@@ -187,12 +231,112 @@ get imageFile(): ImageFile {
     if (!this.pointerDeviceService.isAllowedToOpenContextMenu) return;
 
     let position = this.pointerDeviceService.pointers[0];
+    this.contextMenuService.open(position, [
+      { 
+        name: '高度設定', action: null, subActions: [
+          {
+            name: '高度を0にする', action: () => {
+              if (this.altitude != 0) {
+                this.altitude = 0;
+                SoundEffect.play(PresetSound.sweep);
+              }
+            },
+            altitudeHande: this.gameCharacter
+          },
+          (this.isAltitudeIndicate
+            ? {
+              name: '☑ 高度の表示', action: () => {
+                this.isAltitudeIndicate = false;
+                SoundEffect.play(PresetSound.sweep);
+                EventSystem.trigger('UPDATE_INVENTORY', null);
+              }
+            } : {
+              name: '☐ 高度の表示', action: () => {
+                this.isAltitudeIndicate = true;
+                SoundEffect.play(PresetSound.sweep);
+                EventSystem.trigger('UPDATE_INVENTORY', null);
+              }
+            }),
+          (this.isDropShadow
+            ? {
+              name: '☑ 影の表示', action: () => {
+                this.isDropShadow = false;
+                SoundEffect.play(PresetSound.sweep);
+               EventSystem.trigger('UPDATE_INVENTORY', null);
+               }
+            } : {
+              name: '☐ 影の表示', action: () => {
+               this.isDropShadow = true;
+                SoundEffect.play(PresetSound.sweep);
+                EventSystem.trigger('UPDATE_INVENTORY', null);
+              },
+            })
+        ]
+      },
+      ContextMenuSeparator,
+      { name: '詳細を表示', action: () => { this.showDetail(this.gameCharacter); } },
+      { name: 'チャットパレットを表示', action: () => { this.showChatPalette(this.gameCharacter) } },
+      // { name: 'リモコンを表示', action: () => { this.showRemoteController(this.gameCharacter) } },
+      // { name: 'バフ編集', action: () => { this.showBuffEdit(this.gameCharacter) } },
+      ContextMenuSeparator,
+      {
+        name: '共有イベントリに移動', action: () => {
+          this.gameCharacter.setLocation('common');
+          SoundEffect.play(PresetSound.piecePut);
+        }
+      },
+      {
+        name: '個人イベントリに移動', action: () => {
+          this.gameCharacter.setLocation(Network.peerId);
+          SoundEffect.play(PresetSound.piecePut);
+        }
+      },
+      {
+        name: '墓場に移動', action: () => {
+          this.gameCharacter.setLocation('graveyard');
+          SoundEffect.play(PresetSound.sweep);
+        }
+      },
 
-    let menuActions: ContextMenuAction[] = [];
-    menuActions = menuActions.concat(this.makeSelectionContextMenu());
-    menuActions = menuActions.concat(this.makeContextMenu());
-    this.contextMenuService.open(position, menuActions, this.name);
+      ContextMenuSeparator,
+      (this.isLock
+        ? {
+          name: '固定解除', action: () => {
+            this.isLock = false;
+            SoundEffect.play(PresetSound.unlock);
+          }
+        } : {
+          name: '固定する', action: () => {
+            this.isLock = true;
+            SoundEffect.play(PresetSound.lock);
+          }
+        }),
+      ContextMenuSeparator,
+      {
+        name: 'コピーを作る', action: () => {
+          let cloneObject = this.gameCharacter.clone();
+          cloneObject.location.x += this.gridSize;
+          cloneObject.location.y += this.gridSize;
+          cloneObject.update();
+          SoundEffect.play(PresetSound.piecePut);
+        }
+      },
+    ], this.name);
   }
+  // @HostListener('contextmenu', ['$event'])
+  // onContextMenu(e: Event) {
+  //   e.stopPropagation();
+  //   e.preventDefault();
+
+  //   if (!this.pointerDeviceService.isAllowedToOpenContextMenu) return;
+
+  //   let position = this.pointerDeviceService.pointers[0];
+
+  //   let menuActions: ContextMenuAction[] = [];
+  //   menuActions = menuActions.concat(this.makeSelectionContextMenu());
+  //   menuActions = menuActions.concat(this.makeContextMenu());
+  //   this.contextMenuService.open(position, menuActions, this.name);
+  // }
 
   onMove() {
     this.contextMenuService.close();
@@ -306,5 +450,21 @@ get imageFile(): ImageFile {
     let option: PanelOption = { left: coordinate.x - 250, top: coordinate.y - 175, width: 615, height: 350 };
     let component = this.panelService.open<ChatPaletteComponent>(ChatPaletteComponent, option);
     component.character = gameObject;
+  }
+
+  // 入力（クリックやドラッグ）が開始された時の処理
+  onInputStart(e: any) {
+    // 固定されている場合、操作をキャンセルする
+    if (this.isLock) {
+      this.input.cancel();
+      // システム側に「固定されたオブジェクトをドラッグしようとした」ことを通知
+      EventSystem.trigger('DRAG_LOCKED_OBJECT', {});
+    }
+  }
+  ngAfterViewInit() {
+    this.ngZone.runOutsideAngular(() => {
+      this.input = new InputHandler(this.elementRef.nativeElement);
+    });
+    this.input.onStart = this.onInputStart.bind(this); // ← ここで紐付け
   }
 }

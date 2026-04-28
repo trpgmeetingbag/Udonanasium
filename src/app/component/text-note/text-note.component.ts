@@ -22,6 +22,7 @@ import { ContextMenuAction, ContextMenuSeparator, ContextMenuService } from 'ser
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 import { SelectionState, TabletopSelectionService } from 'service/tabletop-selection.service';
+import { InputHandler } from 'directive/input-handler';
 
 @Component({
   selector: 'text-note',
@@ -55,6 +56,70 @@ export class TextNoteComponent implements OnChanges, OnDestroy {
 
   gridSize: number = 50;
 
+  // === ↓ ここから追加 ↓ ===
+
+    private input: InputHandler = null;
+  get isLock(): boolean { return this.textNote.isLock; }
+  set isLock(isLock: boolean) { this.textNote.isLock = isLock; }
+
+  get altitude(): number { return this.textNote.altitude; }
+  set altitude(altitude: number) { this.textNote.altitude = altitude; }
+
+  get isUpright(): boolean { return this.textNote.isUpright; }
+  set isUpright(isUpright: boolean) { this.textNote.isUpright = isUpright; }
+
+  get isAltitudeIndicate(): boolean { return this.textNote.isAltitudeIndicate; }
+  set isAltitudeIndicate(isAltitudeIndicate: boolean) { this.textNote.isAltitudeIndicate = isAltitudeIndicate; }
+
+  // 高度表示用の計算
+  get textNoteAltitude(): number {
+    let ret = this.altitude;
+    if (this.isUpright && this.altitude < 0) {
+      if (-this.height <= this.altitude) return 0;
+      ret += this.height;
+    }
+    return +ret.toFixed(1); 
+  }
+
+  viewRotateZ = 10;
+  math = Math;
+
+  // アニメーション用変数
+  private _transitionTimeout: any = null;
+  private _transition: boolean = false;
+  get transition(): boolean { return this._transition; }
+  set transition(transition: boolean) {
+    this._transition = transition;
+    if (this._transitionTimeout) clearTimeout(this._transitionTimeout);
+    if (transition) {
+      this._transitionTimeout = setTimeout(() => { this._transition = false; }, 132);
+    } else {
+      this._transitionTimeout = null;
+    }
+  }
+
+  private _fallTimeout: any = null;
+  private _fall: boolean = false;
+  get fall(): boolean { return this._fall; }
+  set fall(fall: boolean) {
+    this._fall = fall;
+    if (this._fallTimeout) clearTimeout(this._fallTimeout);
+    if (fall) {
+      this._fallTimeout = setTimeout(() => { this._fall = false; }, 132);
+    } else {
+      this._fallTimeout = null;
+    }
+  }
+
+  // ドラッグキャンセル用のメソッド（現行版に不足しているため追加）
+  onInputStart(e: any) {
+    this.input.cancel();
+    if (this.isLock) {
+      EventSystem.trigger('DRAG_LOCKED_OBJECT', { srcEvent: e });
+    }
+  }
+  // === ↑ ここまで追加 ↑ ===
+
   private calcFitHeightTimer: NodeJS.Timeout = null;
 
   movableOption: MovableOption = {};
@@ -86,6 +151,12 @@ export class TextNoteComponent implements OnChanges, OnDestroy {
       })
       .on(`UPDATE_SELECTION/identifier/${this.textNote?.identifier}`, event => {
         this.changeDetector.markForCheck();
+      })
+      .on<object>('TABLE_VIEW_ROTATE', -1000, event => {
+        this.ngZone.run(() => {
+          this.viewRotateZ = event.data['z'];
+          this.changeDetector.markForCheck();
+        });
       });
     this.movableOption = {
       tabletopObject: this.textNote,
@@ -177,6 +248,39 @@ export class TextNoteComponent implements OnChanges, OnDestroy {
 
   private makeContextMenu(): ContextMenuAction[] {
     let actions: ContextMenuAction[] = [];
+
+    // === ↓ 追加：高度・固定・寝かせるメニュー ↓ ===
+    actions.push({
+      name: '高度設定', action: null, subActions: [
+        {
+          name: '高度を0にする', action: () => {
+            if (this.altitude != 0) {
+              this.altitude = 0;
+              SoundEffect.play(PresetSound.sweep);
+            }
+          },
+          altitudeHande: this.textNote
+        },
+        (this.isAltitudeIndicate
+          ? { name: '☑ 高度の表示', action: () => { this.isAltitudeIndicate = false; SoundEffect.play(PresetSound.sweep); EventSystem.trigger('UPDATE_INVENTORY', null); } }
+          : { name: '☐ 高度の表示', action: () => { this.isAltitudeIndicate = true; SoundEffect.play(PresetSound.sweep); EventSystem.trigger('UPDATE_INVENTORY', null); } }
+        )
+      ]
+    });
+    actions.push(ContextMenuSeparator);
+
+    actions.push((this.isLock
+      ? { name: '固定解除', action: () => { this.isLock = false; SoundEffect.play(PresetSound.unlock); } }
+      : { name: '固定する', action: () => { this.isLock = true; SoundEffect.play(PresetSound.lock); } }
+    ));
+    actions.push(ContextMenuSeparator);
+
+    actions.push((this.isUpright
+      ? { name: '寝かせる', action: () => { this.transition = true; this.isUpright = false; SoundEffect.play(PresetSound.sweep); } }
+      : { name: '直立させる', action: () => { this.transition = true; this.isUpright = true; SoundEffect.play(PresetSound.sweep); } }
+    ));
+    actions.push(ContextMenuSeparator);
+    // === ↑ 追加ここまで ↑ ===
 
     actions.push({ name: 'メモを編集', action: () => { this.showDetail(this.textNote); } });
     actions.push({

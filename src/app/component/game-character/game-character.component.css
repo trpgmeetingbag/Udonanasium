@@ -268,3 +268,26 @@
   border-color: #42A5F5; /* お好みの青色（爽やかなブルー）に指定 */
 }
 /* --- END --- */
+
+/* 追加：固定時の鍵アイコン */
+.lock-icon {
+  font-size: 15px;
+  vertical-align: middle;
+}
+
+/* 追加：高度インジケーターの文字装飾 */
+.altitude-indicator {
+  font-size: 10px;
+}
+
+.elevation-indicator, .altitude-indicator {
+  padding-left: 2px;
+  color: black;
+  text-shadow: #f5f5f5 0px 0px 3px;
+  backface-visibility: hidden;
+}
+
+.elevation-indicator {
+  font-weight: bolder;
+  font-size: 12px;
+}
