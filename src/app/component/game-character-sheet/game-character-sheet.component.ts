@@ -512,7 +512,43 @@ set hideInTableInventory(value: boolean) {
     EventSystem.trigger('UPDATE_INVENTORY', null);
   }
 
+// --- START: 共有メモ用の設定メソッド ---
+  clickLimitHeight() {
+    // 高さが更新されない場合があるので、少し遅延させてから盤面のメモに再計算を指示する
+    setTimeout(() => { 
+      EventSystem.trigger('RESIZE_NOTE_OBJECT', { identifier: this.tabletopObject.identifier });
+    }, 100);
+  }
 
+  chkNotePopWidth(width: number) {
+    let note = this.tabletopObject as any; // TextNoteとして扱うためのキャスト
+    if (width < 250) width = 250;
+    if (width > 1000) width = 1000;
+    note.overViewWidth = width;
+  }
 
+  chkNotePopMaxHeight(maxHeight: number) {
+    let note = this.tabletopObject as any;
+    if (maxHeight < 250) maxHeight = 250;
+    if (maxHeight > 1000) maxHeight = 1000;
+    note.overViewMaxHeight = maxHeight;
+  }
+  // --- END ---
+
+  // --- START: カード・山札用の設定メソッド ---
+  chkCardPopWidth(width: number) {
+    let card = this.tabletopObject as any; // Card または CardStack
+    if (width < 250) width = 250;
+    if (width > 1000) width = 1000;
+    card.overViewWidth = width;
+  }
+
+  chkCardPopMaxHeight(maxHeight: number) {
+    let card = this.tabletopObject as any; // Card または CardStack
+    if (maxHeight < 250) maxHeight = 250;
+    if (maxHeight > 1000) maxHeight = 1000;
+    card.overViewMaxHeight = maxHeight;
+  }
+  // --- END ---
 
 }

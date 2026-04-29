@@ -38,6 +38,13 @@ import { TabletopService } from 'service/tabletop.service';
 export class CardComponent implements OnDestroy, OnChanges, AfterViewInit {
   @Input() card: Card = null;
   @Input() is3D: boolean = false;
+  // --- START: リリィ互換 固定機能 ---
+  get isLock(): boolean { return this.card.isLock; }
+  set isLock(isLock: boolean) { this.card.isLock = isLock; }
+
+  get dispLockMark(): boolean { return this.card.dispLockMark; }
+  set dispLockMark(disp: boolean) { this.card.dispLockMark = disp; }
+  // --- END ---
 
   get name(): string { return this.card.name; }
   get state(): CardState { return this.card.state; }
@@ -177,7 +184,13 @@ export class CardComponent implements OnDestroy, OnChanges, AfterViewInit {
     this.ngZone.run(() => {
       this.card.toTopmost();
       this.startIconHiddenTimer();
+      
     });
+    // --- START: リリィ互換 固定中のドラッグキャンセル ---
+    if (this.isLock) {
+      EventSystem.trigger('DRAG_LOCKED_OBJECT', { srcEvent: e });
+    }
+    // --- END ---
   }
 
   @HostListener('contextmenu', ['$event'])
@@ -244,6 +257,8 @@ export class CardComponent implements OnDestroy, OnChanges, AfterViewInit {
 
     let actions: ContextMenuAction[] = [];
 
+
+
     let objectPosition = {
       x: this.card.location.x + (this.card.size * this.gridSize) / 2,
       y: this.card.location.y + (this.card.size * this.gridSize) / 2,
@@ -288,6 +303,42 @@ export class CardComponent implements OnDestroy, OnChanges, AfterViewInit {
   private makeContextMenu(): ContextMenuAction[] {
     let actions: ContextMenuAction[] = [];
 
+        // --- START: リリィ互換 固定メニュー ---
+    actions.push(
+      this.isLock
+        ? {
+          name: '固定解除', action: () => {
+            this.isLock = false;
+            this.dispLockMark = true;
+            SoundEffect.play(PresetSound.unlock);
+          }
+        }
+        : {
+          name: '固定する', action: () => {
+            this.isLock = true;
+            SoundEffect.play(PresetSound.lock);
+          }
+        }
+    );
+    if (this.isLock) {
+      actions.push(
+        this.dispLockMark
+          ? {
+            name: '固定マーク消去', action: () => {
+              this.dispLockMark = false;
+              SoundEffect.play(PresetSound.lock);
+            }
+          }
+          : {
+            name: '固定マーク表示', action: () => {
+              this.dispLockMark = true;
+              SoundEffect.play(PresetSound.lock);
+            }
+          }
+      );
+    }
+    actions.push(ContextMenuSeparator);
+    // --- END ---
     actions.push(!this.isVisible || this.isHand
       ? {
         name: '表にする', action: () => {

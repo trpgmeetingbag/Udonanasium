@@ -18,6 +18,12 @@ export class Card extends TabletopObject {
   @SyncVar() owner: string = '';
   @SyncVar() zindex: number = 0;
 
+  // 【追加】リリィ互換：固定機能とポップアップサイズ設定
+  @SyncVar() isLock: boolean = false;
+  @SyncVar() dispLockMark: boolean = true;
+  @SyncVar() overViewWidth: number = 250;
+  @SyncVar() overViewMaxHeight: number = 250;
+
   get isVisibleOnTable(): boolean { return this.location.name === 'table' && (!this.parentIsAssigned || this.parentIsDestroyed); }
 
   get name(): string { return this.getCommonValue('name', ''); }

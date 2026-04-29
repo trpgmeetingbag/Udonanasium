@@ -256,3 +256,11 @@ input {
   font-size: 14px;
 }
 /* --- END --- */
+/* START: 共有メモ・カード等の追加設定用入力欄 */
+.extra-setting input[type="number"] {
+  color: #333 !important;
+  background-color: #FFF !important;
+  border: 1px solid #CCC;
+  border-radius: 3px;
+}
+/* END */

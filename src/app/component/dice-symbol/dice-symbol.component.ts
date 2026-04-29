@@ -65,6 +65,14 @@ export class DiceSymbolComponent implements OnChanges, AfterViewInit, OnDestroy 
   @Input() diceSymbol: DiceSymbol = null;
   @Input() is3D: boolean = false;
 
+  // --- START: リリィ互換 Getter/Setter ---
+  get isLock(): boolean { return this.diceSymbol.isLock; }
+  set isLock(isLock: boolean) { this.diceSymbol.isLock = isLock; }
+
+  get imageHeignt(): number { return this.diceSymbol.komaImageHeignt; }
+  get specifyImageFlag(): boolean { return this.diceSymbol.specifyKomaImageFlag; }
+  // --- END ---
+
   get face(): string { return this.diceSymbol.face; }
   set face(face: string) { this.diceSymbol.face = face; }
   get owner(): string { return this.diceSymbol.owner; }
@@ -185,6 +193,11 @@ export class DiceSymbolComponent implements OnChanges, AfterViewInit, OnDestroy 
 
   onInputStart(e: MouseEvent | TouchEvent) {
     this.ngZone.run(() => this.startIconHiddenTimer());
+    // --- START: リリィ互換 固定中のドラッグキャンセル ---
+    if (this.isLock) {
+      EventSystem.trigger('DRAG_LOCKED_OBJECT', { srcEvent: e });
+    }
+    // --- END ---
   }
 
   onDoubleClick() {
@@ -299,7 +312,25 @@ export class DiceSymbolComponent implements OnChanges, AfterViewInit, OnDestroy 
       actions.push({ name: `ダイス目を設定`, action: null, subActions: subActions });
     }
 
+
+    // --- START: リリィ互換 固定メニュー ---
     actions.push(ContextMenuSeparator);
+    actions.push(this.isLock
+        ? {
+          name: '固定解除', action: () => {
+            this.isLock = false;
+            SoundEffect.play(PresetSound.unlock);
+          }
+        } : {
+          
+          name: '固定する', action: () => {
+            this.isLock = true;
+            SoundEffect.play(PresetSound.lock);
+          }
+        });
+    // --- END ---
+    actions.push(ContextMenuSeparator);
+    
 
     actions.push({ name: '詳細を表示', action: () => { this.showDetail(this.diceSymbol); } });
     actions.push({

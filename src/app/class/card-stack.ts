@@ -14,6 +14,11 @@ export class CardStack extends TabletopObject {
   @SyncVar() owner: string = '';
   @SyncVar() isShowTotal: boolean = true;
 
+  // 【追加】リリィ互換：固定機能とポップアップサイズ設定
+  @SyncVar() isLock: boolean = false;
+  @SyncVar() overViewWidth: number = 250;
+  @SyncVar() overViewMaxHeight: number = 250;
+
   get name(): string { return this.getCommonValue('name', ''); }
   get ownerName(): string {
     let object = PeerCursor.findByUserId(this.owner);

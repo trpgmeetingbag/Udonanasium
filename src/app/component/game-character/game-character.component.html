@@ -15,21 +15,24 @@
       <div *ngIf="isSelected" class="selected-highlight" [ngClass]="{'is-magnetic': isMagnetic}"></div>
       <div class="pedestal-outer"></div>
 
-      <img class="image is-pointer-events-none chrome-smooth-image-trick" [ngStyle]="{'height':+ this.gameCharacter.komaImageHeignt + 'px','transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px) scaleY(0.5) translateY(-150%) translateY(' + size * gridSize +'px)'}" *ngIf="isDropShadow && (0 < imageFile.url.length) && this.gameCharacter.specifyKomaImageFlag" [src]="imageFile.url | safe: 'resourceUrl'" 
-      style="filter: brightness(0) opacity(0.7) blur(1px);">
-      <img class="image is-pointer-events-none chrome-smooth-image-trick" [ngStyle]="{'width':'100%','transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px) scaleY(0.5) translateY(-150%) translateY(' + size * gridSize +'px)'}" *ngIf="isDropShadow && (0 < imageFile.url.length) && !this.gameCharacter.specifyKomaImageFlag" [src]="imageFile.url | safe: 'resourceUrl'"
-      style="filter: brightness(0) opacity(0.7) blur(1px);">
+      <img class="image is-pointer-events-none chrome-smooth-image-trick"
+        [ngStyle]="{'height':+ this.gameCharacter.komaImageHeignt + 'px','transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px) scaleY(0.5) translateY(-150%) translateY(' + size * gridSize +'px)'}"
+        *ngIf="isDropShadow && (0 < imageFile.url.length) && this.gameCharacter.specifyKomaImageFlag"
+        [src]="imageFile.url | safe: 'resourceUrl'" style="filter: brightness(0) opacity(0.7) blur(1px);">
+      <img class="image is-pointer-events-none chrome-smooth-image-trick"
+        [ngStyle]="{'width':'100%','transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px) scaleY(0.5) translateY(-150%) translateY(' + size * gridSize +'px)'}"
+        *ngIf="isDropShadow && (0 < imageFile.url.length) && !this.gameCharacter.specifyKomaImageFlag"
+        [src]="imageFile.url | safe: 'resourceUrl'" style="filter: brightness(0) opacity(0.7) blur(1px);">
       <!-- <div class="upright-transform is-fit-width is-3d"> -->
-      <div class="upright-transform is-fit-width is-3d" [ngStyle]="{'transform': 'rotateX(-90deg) translateY(-50%) translateY(' + (-altitude) * gridSize +'px)'}">
+      <div class="upright-transform is-fit-width is-3d"
+        [ngStyle]="{'transform': 'rotateX(-90deg) translateY(-50%) translateY(' + (-altitude) * gridSize +'px)'}">
         <div class="rotate-frame is-3d" [style.width.px]="size * gridSize" [style.height.px]="size * gridSize"
           appRotable [rotable.option]="rollOption" (rotable.ondragstart)="onMove()" (rotable.ondragend)="onMoved()">
           <div class="rotate-inner is-3d">
 
             <ng-container *ngIf="0 < name.length">
-              <div *ngFor="let rotateY of ['0', '180deg']"
-                class="name-tag is-nowrap"
-                [class.is-black-background]="!disableChat"
-                [class.is-white-background]="disableChat"
+              <div *ngFor="let rotateY of ['0', '180deg']" class="name-tag is-nowrap"
+                [class.is-black-background]="!disableChat" [class.is-white-background]="disableChat"
                 [ngStyle]="{'transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px) rotateY(' + rotateY + ')'}">
                 <div class="has-length-limit">{{name}}
                   <ng-container *ngIf="isLock">
@@ -37,10 +40,23 @@
                   </ng-container>
                 </div>
               </div>
-              </ng-container>
+            </ng-container>
 
 
-            <img class="image chrome-smooth-image-trick" *ngIf="0 < imageFile.url.length" [src]="imageFile.url | safe: 'resourceUrl'">
+            <!-- 変更後（リリィ互換の中央揃え transform 適用） -->
+
+            <!-- 高さ指定ONの場合 -->
+            <img class="image chrome-smooth-image-trick" [ngStyle]="{
+       'height': komaImageHeignt + 'px',
+       'transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px)'
+     }" *ngIf="(0 < imageFile.url.length) && specifyKomaImageFlag" [src]="imageFile.url | safe: 'resourceUrl'">
+
+            <!-- 高さ指定OFFの場合（デフォルト） -->
+            <img class="image chrome-smooth-image-trick" [ngStyle]="{
+       'width':'100%',
+       'transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px)'
+     }" *ngIf="(0 < imageFile.url.length) && !specifyKomaImageFlag" [src]="imageFile.url | safe: 'resourceUrl'">
+
             <div class="rotate-grab rotate-grab-icon of-top"
               [ngStyle]="{'transform': 'translateX(-50%) translateX(' + size * gridSize / 2 +'px)'}">
               <i class="material-icons">autorenew</i>
@@ -58,20 +74,23 @@
     style="display: flex; flex-flow: column nowrap; justify-content: space-between; border-left: 2px dashed black; transform-origin: top left; position: absolute;"
     [style.height.px]="math.abs(altitude * gridSize)"
     [ngStyle]="{transform: 'translateX(' + (size * gridSize / 2) + 'px) translateY(' + (-size * gridSize / 2) + 'px) rotateX(-90deg) translateY(' + (altitude > 0 ? -altitude * gridSize : 0) + 'px) rotateY(' + (viewRotateZ) + 'deg)'}">
-    
+
     <div class="is-3d" [style.visibility]="altitude > 0 ? 'visible' : 'hidden'">
       <span class="elevation-indicator is-3d" style="position: absolute"><i>{{ elevation }}</i></span>
-      <span class="elevation-indicator is-3d" style="position: absolute; transform: rotateY(-180deg)"><i>{{ elevation }}</i></span>
+      <span class="elevation-indicator is-3d" style="position: absolute; transform: rotateY(-180deg)"><i>{{ elevation
+          }}</i></span>
     </div>
-    
+
     <div class="is-3d">
       <span class="altitude-indicator is-3d" style="position: absolute">{{ math.abs(altitude) }}</span>
-      <span class="altitude-indicator is-3d" style="position: absolute; transform: rotateY(-180deg)">{{ math.abs(altitude) }}</span>
+      <span class="altitude-indicator is-3d" style="position: absolute; transform: rotateY(-180deg)">{{
+        math.abs(altitude) }}</span>
     </div>
-    
+
     <div class="is-3d" [style.visibility]="altitude < 0 ? 'visible' : 'hidden'">
       <span class="elevation-indicator is-3d" style="position: absolute"><i>{{ elevation }}</i></span>
-      <span class="elevation-indicator is-3d" style="position: absolute; transform: rotateY(-180deg)"><i>{{ elevation }}</i></span>
+      <span class="elevation-indicator is-3d" style="position: absolute; transform: rotateY(-180deg)"><i>{{ elevation
+          }}</i></span>
     </div>
   </div>
 </div>

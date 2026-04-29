@@ -19,8 +19,10 @@
               <i class="material-icons" style="display: inline;">lock</i>
             </div>
           </div>
-          <textarea (input)="calcFitHeight();" #textArea class="textarea" [ngClass]="{'is-pointer-events-none': !isActive, 'is-pointer-events-auto': isActive, 'is-outline-text': !isActive}"
-            [style.font-size.px]="fontSize + 9" [(ngModel)]="text" spellcheck="false"></textarea>
+            <textarea class="textarea is-caret" (input)="calcFitHeight();" #textArea 
+            [style.font-size.px]="fontSize + 9" [(ngModel)]="text" spellcheck="false" id="text-area" 
+            style = "overflow:hidden auto;"
+            ></textarea>
           <div *ngIf="isSelected" class="selected-highlight" [ngClass]="{'is-magnetic': isMagnetic}"></div>
         </div>
         

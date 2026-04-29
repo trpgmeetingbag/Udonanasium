@@ -53,6 +53,11 @@ export class CardStackComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() cardStack: CardStack = null;
   @Input() is3D: boolean = false;
 
+  // --- START: リリィ互換 固定機能 ---
+  get isLock(): boolean { return this.cardStack.isLock; }
+  set isLock(isLock: boolean) { this.cardStack.isLock = isLock; }
+  // --- END ---
+
   get name(): string { return this.cardStack.name; }
   get rotate(): number { return this.cardStack.rotate; }
   set rotate(rotate: number) { this.cardStack.rotate = rotate; }
@@ -201,6 +206,11 @@ export class CardStackComponent implements OnChanges, AfterViewInit, OnDestroy {
       this.cardStack.toTopmost();
       this.startIconHiddenTimer();
     });
+    // --- START: リリィ互換 固定中のドラッグキャンセル ---
+    if (this.isLock) {
+      EventSystem.trigger('DRAG_LOCKED_OBJECT', { srcEvent: e });
+    }
+    // --- END ---
   }
 
   @HostListener('contextmenu', ['$event'])
@@ -366,6 +376,23 @@ export class CardStackComponent implements OnChanges, AfterViewInit, OnDestroy {
   private makeContextMenu(): ContextMenuAction[] {
     let actions: ContextMenuAction[] = [];
 
+    // --- START: リリィ互換 固定メニュー ---
+    actions.push(
+      this.isLock
+        ? {
+          name: '固定解除', action: () => {
+            this.isLock = false;
+            SoundEffect.play(PresetSound.unlock);
+          }
+        } : {
+          name: '固定する', action: () => {
+            this.isLock = true;
+            SoundEffect.play(PresetSound.lock);
+          }
+        }
+    );
+    actions.push(ContextMenuSeparator);
+    // --- END ---
     actions.push({
       name: '１枚引く', action: () => {
         if (this.drawCard() != null) {

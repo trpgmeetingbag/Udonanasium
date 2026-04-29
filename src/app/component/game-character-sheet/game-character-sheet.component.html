@@ -2,10 +2,51 @@
 <ng-container [ngSwitch]="tabletopObject.aliasName">
   <ng-container *ngSwitchCase="'numberResource'">
   </ng-container>
+<!-- START: カード用の設定（リリィ互換UI） -->
   <ng-container *ngSwitchCase="'card'">
     <button (click)="openModal('front')">表面の画像を変更</button>
     <button (click)="openModal('back')">裏面の画像を変更</button>
+    
+    <div class="extra-setting" style="width: 400px; text-align: right; margin-top: 12px; border-top: 1px dashed #777; padding-top: 8px;">
+      <div>
+        ポップアップ横幅
+        <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+               min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewWidth" />
+        <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewWidth" type="number" style="width:4em; "
+               min="250" max="1000" (change)="chkCardPopWidth($any($event.target).value)" />
+      </div>
+      <div>
+        ポップアップ縦幅最大
+        
+        <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+               min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" />
+        <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" type="number" style="width:4em; "
+               min="250" max="1000" (change)="chkCardPopMaxHeight($any($event.target).value)" />
+        
+      </div>
+    </div>
   </ng-container>
+  
+  <ng-container *ngSwitchCase="'card-stack'">
+    <div class="extra-setting" style="width: 400px; text-align: right; margin-top: 12px;">
+      <div>
+        ポップアップ横幅
+        <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+               min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewWidth" />
+        <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewWidth" type="number" style="width:4em; "
+               min="250" max="1000" (change)="chkCardPopWidth($any($event.target).value)" />
+               
+      </div>
+      <div>
+        ポップアップ縦幅最大
+        <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+               min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" />
+        <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" type="number" style="width:4em; "
+               min="250" max="1000" (change)="chkCardPopMaxHeight($any($event.target).value)" />
+      </div>
+    </div>
+  </ng-container>
+  <!-- END: カード・山札用の設定 -->
   <ng-container *ngSwitchCase="'card-stack'">
   </ng-container>
   <ng-container *ngSwitchCase="'terrain'">
@@ -15,6 +56,7 @@
   <ng-container *ngSwitchCase="'dice-symbol'">
     <button (click)="openModal(tabletopObject['face'])" [disabled]="!tabletopObject['isVisible']">ダイス目の画像を変更</button>
   </ng-container>
+  
   <ng-container *ngSwitchDefault>
     <button (click)="openModal('imageIdentifier', true)">画像変更</button>
   </ng-container>
@@ -26,6 +68,7 @@
     <div *ngIf="isSaveing" class="progress">{{progresPercent}}%</div>
   </div>
 </button>
+
 <ng-container *ngIf="tabletopObject.aliasName === 'character'">
   <select #select *ngIf="tabletopObject" (change)="setLocation(select.value)" [ngModel]="tabletopObject.location.name">
     <option value="table">テーブル</option>
@@ -112,6 +155,50 @@
   </div>
 
 </ng-container>
+
+<!-- START: リリィ互換 ダイス画像の高さ指定UI -->
+<ng-container *ngIf="tabletopObject.aliasName === 'dice-symbol'">
+  <div class="extra-setting" style="width: 400px; text-align: right; margin-top: 4px; margin-bottom: 8px;">
+    <div>
+      コマ画像の高さを指定
+      <input type="checkbox" [(ngModel)]="$any(tabletopObject).specifyKomaImageFlag" />
+    </div>
+    <div *ngIf="$any(tabletopObject).specifyKomaImageFlag">
+      コマ画像の高さ
+      <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+             min="10" max="1000" [(ngModel)]="$any(tabletopObject).komaImageHeignt" />
+      <input class="is-caret" [(ngModel)]="$any(tabletopObject).komaImageHeignt" type="number" style="width:4em;"
+             min="10" max="1000" />
+    </div>
+  </div>
+</ng-container>
+<!-- END -->
+
+
+<!-- START: 共有メモ用の設定（リリィ互換UI） -->
+<ng-container *ngIf="tabletopObject.aliasName === 'text-note'">
+  <div class="extra-setting" style="width: 400px; text-align: right;">
+    <div>
+      height設定値に高さを制限
+      <input type="checkbox" [(ngModel)]="$any(tabletopObject).limitHeight" (change)="clickLimitHeight()">
+    </div>
+    <div>
+      ポップアップ横幅
+      <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+             min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewWidth" />
+      <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewWidth" type="number" style="width:4em; color: #555;"
+             min="250" max="1000" (change)="chkNotePopWidth($any($event.target).value)" />
+    </div>
+    <div>
+      ポップアップ縦幅最大
+      <input type="range" [style]="'font-size: 0.8em; min-width: 1em; width: 10em;' | safe: 'style'"
+             min="250" max="1000" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" />
+      <input class="is-caret" [(ngModel)]="$any(tabletopObject).overViewMaxHeight" type="number" style="width:4em; color: #555;"
+             min="250" max="1000" (change)="chkNotePopMaxHeight($any($event.target).value)" />
+    </div>
+  </div>
+</ng-container>
+<!-- END: 共有メモ用の設定 -->
 <div *ngIf="tabletopObject" class="flex-container">
   <div *ngIf="0 < tabletopObject.imageFile?.url.length" class="box main-image-box">
     <img class="main-image" [src]="tabletopObject.imageFile.url | safe: 'resourceUrl'" [alt]="tabletopObject.imageFile.name"

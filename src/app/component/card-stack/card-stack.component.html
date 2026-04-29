@@ -1,8 +1,14 @@
-<div class="component is-3d is-pointer-events-none" [ngClass]="{'is-empty': isEmpty}"
+<!-- <div class="component is-3d is-pointer-events-none" [ngClass]="{'is-empty': isEmpty}"
   [style.width.px]="size * gridSize"
   appMovable [movable.option]="movableOption" (movable.ondragstart)="onMove()" (movable.ondragend)="onMoved()">
   <div class="component-content is-pointer-events-auto is-grab is-3d"
-    appRotable [rotable.option]="rotableOption" (rotable.ondragstart)="onMove()" (rotable.ondragend)="onMoved()">
+    appRotable [rotable.option]="rotableOption" (rotable.ondragstart)="onMove()" (rotable.ondragend)="onMoved()"> -->
+    <!-- 修正後 -->
+<div class="component is-3d is-pointer-events-none" [ngClass]="{'is-empty': isEmpty}"
+  [style.width.px]="size * gridSize"
+  appMovable [movable.option]="movableOption" (movable.ondragstart)="onMove()" (movable.ondragend)="onMoved()" [movable.disable]="isLock">
+  <div class="component-content is-pointer-events-auto is-grab is-3d"
+    appRotable [rotable.option]="rotableOption" (rotable.ondragstart)="onMove()" (rotable.ondragend)="onMoved()" [rotable.disable]="isLock">
     <div [@shuffle]="animeState"
       (@shuffle.start)="animationShuffleStarted($event)"
       (@shuffle.done)="animationShuffleDone($event)"
@@ -10,7 +16,7 @@
       <img *ngIf="topCard && imageFile" class="card-image chrome-smooth-image-trick"
         [ngStyle]="{'transform': 'rotateZ(' + topCard.rotate +'deg)'}" [src]="imageFile.url | safe: 'resourceUrl'">
     </div>
-    <ng-container *ngIf="!isIconHidden">
+    <ng-container *ngIf="!isIconHidden && !isLock">
       <div class="rotate-grab of-left-top">
         <i class="material-icons">autorenew</i>
       </div>
@@ -24,6 +30,11 @@
         <i class="material-icons">autorenew</i>
       </div>
     </ng-container>
+    <!-- START: リリィ互換 鍵マーク表示 -->
+    <div *ngIf="isLock" class="lock-icon-mark is-nowrap is-black-background is-3d will-change" [ngStyle]="{'transform': 'translateY(0%) translateX(-50%) translateX(' + size * gridSize / 2 +'px)'}">
+      <i class="material-icons" style="display: inline; font-size: 15px; vertical-align: middle;">lock</i>
+    </div>
+    <!-- END -->
     <div *ngIf="isShowTotal" class="name-tag is-nowrap is-black-background" [ngStyle]="{'transform': 'translateY(-50%) translateX(-50%) translateX(' + size * gridSize / 2 +'px)'}">
       <span>{{cards.length}}枚</span>
     </div>

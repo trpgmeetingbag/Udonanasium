@@ -29,7 +29,8 @@
 
 <ng-template #overviewCard let-card="card">
   <div class="component-content is-small-size"
-    [ngClass]="{ 'is-pointer-events-auto': !this.isPointerDragging, 'pointer-events-none': this.isPointerDragging }">
+    [ngClass]="{ 'is-pointer-events-auto': !this.isPointerDragging, 'pointer-events-none': this.isPointerDragging }"
+    [ngStyle]="{'width': overViewCardWidth + 'px'}">
     <div *ngIf="hasImage" style="position: relative;">
       <img class="card-image" [src]="imageUrl | safe: 'resourceUrl'" />
       <button class="zoom-button" (click)="chanageImageView(true)">
@@ -40,19 +41,33 @@
         <div class="owner-tag">{{card.ownerName}}</div>
       </div>
     </div>
+    <!-- 2箇所目: タイトルバーの幅（画像がある場合はボタンの余白を引く） -->
     <div *ngIf="0 < card?.name?.length" class="component-title title-background"
-      [ngClass]="{'with-button-marign': hasImage}">
+      [ngClass]="{'with-button-marign': hasImage}"
+      [ngStyle]="{'width': overViewCardWidthNoMargin + 'px'}">
       <ng-container *ngIf="card.isVisible == null || card.isVisible">{{card.name}}</ng-container>
       <ng-container *ngIf="card.isVisible != null && !card.isVisible">カード</ng-container>
     </div>
-    <div class="component-background">
-      <div class="grid-container-root" *ngIf="hasDataElms && card.isVisible">
+
+    <!-- 3箇所目: 背景エリアの幅と最大高 -->
+    <div class="component-background"
+      [ngStyle]="{'width': overViewCardWidth + 'px','max-height': overViewCardMaxHeight +'px'}">
+      <!-- 4箇所目: データ一覧エリアの幅と最大高 -->
+      <div class="grid-container-root" *ngIf="hasDataElms && card.isVisible"
+           [ngStyle]="{'width': overViewCardWidth + 'px','max-height': overViewCardMaxHeight +'px'}">
         <div class="grid-container">
           <ng-container *ngFor="let dataElm of dataElms">
             <ng-container *ngTemplateOutlet="dataElement; context: { dataElm: dataElm }"></ng-container>
           </ng-container>
         </div>
       </div>
+      <!-- <div class="grid-container-root" *ngIf="hasDataElms && card.isVisible">
+        <div class="grid-container">
+          <ng-container *ngFor="let dataElm of dataElms">
+            <ng-container *ngTemplateOutlet="dataElement; context: { dataElm: dataElm }"></ng-container>
+          </ng-container>
+        </div>
+      </div> -->
     </div>
   </div>
 </ng-template>
@@ -73,7 +88,8 @@
 </ng-template>
 
 <ng-template #overviewCharacter let-character="character">
-  <div class="component-content character-grid-container is-middle-size">
+  <div class="component-content character-grid-container is-middle-size" 
+       [ngStyle]="{'max-width': overViewCharacterWidth + 'px'}">
     <div class="title-bg-area title-background"
       [ngClass]="{ 'is-pointer-events-auto': !this.isPointerDragging, 'pointer-events-none': this.isPointerDragging }">
     </div>
@@ -87,7 +103,8 @@
     <div class="void-area is-pointer-events-none"></div>
     <div class="dataElm-area component-background"
       [ngClass]="{ 'is-pointer-events-auto': !this.isPointerDragging, 'pointer-events-none': this.isPointerDragging }">
-      <div class="grid-container-root" *ngIf="hasDataElms">
+      <div class="grid-container-root" *ngIf="hasDataElms"
+           [ngStyle]="{'width': overViewCharacterWidth + 'px', 'max-height': overViewCharacterMaxHeight + 'px'}">
         <!--<ng-container *ngFor="let dataElm of dataElms">-->
         <ng-container *ngFor="let dataElm of inventoryDataElms">
           <ng-container *ngIf="dataElm && dataElm !== newLineDataElement">

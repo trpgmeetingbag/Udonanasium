@@ -1,13 +1,18 @@
-<div class="component is-3d is-pointer-events-none is-grab" [style.width.px]="size * gridSize"
+<!-- <div class="component is-3d is-pointer-events-none is-grab" [style.width.px]="size * gridSize"
   appMovable [movable.option]="movableOption" (movable.ondragstart)="onMove()" (movable.ondragend)="onMoved()">
   <div class="component-content is-pointer-events-auto is-3d"
-    appRotable [rotable.option]="rotableOption" (rotable.ondragstart)="onMove()" (rotable.ondragend)="onMoved()">
+    appRotable [rotable.option]="rotableOption" (rotable.ondragstart)="onMove()" (rotable.ondragend)="onMoved()"> -->
+    <!-- 修正後 -->
+<div class="component is-3d is-pointer-events-none is-grab" [style.width.px]="size * gridSize"
+  appMovable [movable.option]="movableOption" (movable.ondragstart)="onMove()" (movable.ondragend)="onMoved()" [movable.disable]="isLock">
+  <div class="component-content is-pointer-events-auto is-3d"
+    appRotable [rotable.option]="rotableOption" (rotable.ondragstart)="onMove()" (rotable.ondragend)="onMoved()" [rotable.disable]="isLock">
     <img *ngIf="imageFile" class="card-image chrome-smooth-image-trick" [src]="(isFront ? frontImage.url : backImage.url) | safe: 'resourceUrl'">
     <div *ngIf="!isFront && hasOwner && 0 < ownerName.length" class="name-tag is-nowrap has-length-limit is-black-background" [ngStyle]="{'transform': 'translateY(-75%) translateX(-50%) translateX(' + size * gridSize / 2 +'px)'}">
       <span>{{ownerName}}</span>
     </div>
     <img *ngIf="isHand && frontImage" class="card-image thumbnail-transform is-translucent chrome-smooth-image-trick" [src]="frontImage.url | safe: 'resourceUrl'">
-    <ng-container *ngIf="!isIconHidden">
+    <ng-container *ngIf="!isIconHidden && !isLock">
       <div class="rotate-grab of-left-top">
         <i class="material-icons">autorenew</i>
       </div>
@@ -23,5 +28,10 @@
       <div class="border-bg is-pointer-events-none"></div>
     </ng-container>
     <div *ngIf="isSelected" class="selected-highlight" [ngClass]="{'is-magnetic': isMagnetic}"></div>
+    <!-- START: リリィ互換 鍵マーク表示 -->
+    <div *ngIf="isLock && dispLockMark" class="lock-icon-mark is-nowrap is-black-background is-3d will-change" [ngStyle]="{'transform': 'translateY(0%) translateX(-50%) translateX(' + size * gridSize / 2 +'px)'}">
+      <i class="material-icons" style="display: inline; font-size: 15px; vertical-align: middle;">lock</i>
+    </div>
+    <!-- END -->
   </div>
 </div>

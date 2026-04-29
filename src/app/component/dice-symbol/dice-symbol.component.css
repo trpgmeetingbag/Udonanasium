@@ -274,3 +274,8 @@
 .component:hover .material-icons, .component:active .material-icons {
   display: inline;
 }
+/* 追加：固定時の鍵アイコン */
+.lock-icon {
+  font-size: 15px;
+  vertical-align: middle;
+}

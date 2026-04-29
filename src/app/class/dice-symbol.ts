@@ -22,6 +22,12 @@ export class DiceSymbol extends TabletopObject {
   @SyncVar() owner: string = '';
   @SyncVar() rotate: number = 0;
 
+  // --- START: リリィ互換 固定機能＆画像高さ設定 ---
+  @SyncVar() isLock: boolean = false;
+  @SyncVar() specifyKomaImageFlag: boolean = false;
+  @SyncVar() komaImageHeignt: number = 100;
+  // --- END ---
+
   get name(): string { return this.getCommonValue('name', ''); }
   set name(name: string) { this.setCommonValue('name', name); }
   get size(): number { return this.getCommonValue('size', 1); }

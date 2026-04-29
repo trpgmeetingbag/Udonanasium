@@ -16,6 +16,7 @@ import { DataElement } from '@udonarium/data-element';
 import { TabletopObject } from '@udonarium/tabletop-object';
 import { GameObjectInventoryService } from 'service/game-object-inventory.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
+import { GameCharacter } from '@udonarium/game-character';
 
 @Component({
   selector: 'overview-panel',
@@ -98,6 +99,51 @@ export class OverviewPanelComponent implements OnChanges, AfterViewInit, OnDestr
   onChangeDragging(e: Event) {
     this.changeDetector.markForCheck();
   }
+
+  // --- START: リリィ互換 ポップアップサイズ取得 ---
+  get overViewCharacterWidth(): number {
+    if (!this.tabletopObject || this.tabletopObject.aliasName !== 'character') return 270;
+    let character = this.tabletopObject as GameCharacter;
+    let width = character.overViewWidth;
+    if (width < 270) width = 270;
+    if (width > 1000) width = 1000;
+    return width;
+  }
+
+  get overViewCharacterMaxHeight(): number {
+    if (!this.tabletopObject || this.tabletopObject.aliasName !== 'character') return 250;
+    let character = this.tabletopObject as GameCharacter;
+    let maxHeight = character.overViewMaxHeight;
+    if (maxHeight < 250) maxHeight = 250;
+    if (maxHeight > 1000) maxHeight = 1000;
+    return maxHeight;
+  }
+  // --- END ---
+
+// --- START: カード・山札用ポップアップサイズ取得 ---
+  get overViewCardWidth(): number {
+    if (!this.tabletopObject) return 250;
+    let card = this.tabletopObject as any;
+    let width = card.overViewWidth || 250;
+    if (width < 250) width = 250;
+    if (width > 1000) width = 1000;
+    return width;
+  }
+
+  get overViewCardWidthNoMargin(): number {
+    if (this.hasImage) return this.overViewCardWidth - 60 - 12 - 2;
+    return this.overViewCardWidth - 12 - 2;
+  }
+
+  get overViewCardMaxHeight(): number {
+    if (!this.tabletopObject) return 250;
+    let card = this.tabletopObject as any;
+    let maxHeight = card.overViewMaxHeight || 250;
+    if (maxHeight < 250) maxHeight = 250;
+    if (maxHeight > 1000) maxHeight = 1000;
+    return maxHeight;
+  }
+  // --- END ---
 
   private initPanelPosition() {
     let panel: HTMLElement = this.draggablePanel.nativeElement;

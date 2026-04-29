@@ -23,6 +23,7 @@ import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 import { SelectionState, TabletopSelectionService } from 'service/tabletop-selection.service';
 import { InputHandler } from 'directive/input-handler';
+import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
 
 @Component({
   selector: 'text-note',
@@ -137,6 +138,14 @@ export class TextNoteComponent implements OnChanges, OnDestroy {
   ngOnChanges(): void {
     EventSystem.unregister(this);
     EventSystem.register(this)
+    // 【追加】高さ制限が切り替わった際の再計算トリガー
+      .on('RESIZE_NOTE_OBJECT', -1000, event => {
+        let object = ObjectStore.instance.get(event.data.identifier);
+        if (!this.textNote || !object) return;
+        if (this.textNote === object ) {
+          this.calcFitHeight();
+        }
+      })
       .on(`UPDATE_GAME_OBJECT/identifier/${this.textNote?.identifier}`, event => {
         this.changeDetector.markForCheck();
       })
@@ -312,13 +321,38 @@ export class TextNoteComponent implements OnChanges, OnDestroy {
     });
   }
 
+// --- START: リリィ互換 メモの高さ計算ロジック ---
+  oldScrollHeight = 0;
+  oldOffsetHeight = 0;
+
   calcFitHeight() {
     let textArea: HTMLTextAreaElement = this.textAreaElementRef.nativeElement;
     textArea.style.height = '0';
-    if (textArea.scrollHeight > textArea.offsetHeight) {
-      textArea.style.height = textArea.scrollHeight + 'px';
+    
+    if (!this.textNote.limitHeight) {
+      // 制限なし：テキスト量に合わせて自動で広がる（元のユドナリウムの挙動）
+      if (textArea.scrollHeight > textArea.offsetHeight) {
+        textArea.style.height = textArea.scrollHeight + 'px';
+        this.oldScrollHeight = textArea.scrollHeight;
+        this.oldOffsetHeight = textArea.offsetHeight;
+      }
+    } else {
+      // 制限あり：オブジェクトのheight設定値で高さを打ち切る
+      let textAreaHeight = textArea.scrollHeight;
+      let textAreaMax = this.height * this.gridSize - 2;
+      
+      if (textAreaMax < this.gridSize) textAreaMax = this.gridSize - 2;
+      if (this.title.length) { 
+        textAreaMax -= 32; // タイトルバーの分を引く
+      } else {
+        textAreaMax -= 2;
+      }
+      
+      if (textAreaHeight > textAreaMax) textAreaHeight = textAreaMax;
+      textArea.style.height = textAreaHeight + 'px';
     }
   }
+  // --- END ---
 
   private addMouseEventListeners() {
     document.body.addEventListener('mouseup', this.callbackOnMouseUp, false);
@@ -337,4 +371,6 @@ export class TextNoteComponent implements OnChanges, OnDestroy {
     let component = this.panelService.open<GameCharacterSheetComponent>(GameCharacterSheetComponent, option);
     component.tabletopObject = gameObject;
   }
+
+  
 }

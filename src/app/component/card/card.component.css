@@ -1,3 +1,4 @@
+
 :host {
   display: block;
 }
@@ -205,3 +206,19 @@
 .component:hover .material-icons, .component:active .material-icons {
   display: inline;
 }
+
+/* START: 鍵マーク用のスタイル */
+.lock-icon-mark {
+  position: absolute;
+  top: 10px; /* カード上端からの距離（ここで内側に入れます） */
+  left: 0;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  box-sizing: border-box;
+  z-index: 10;
+  text-align: center;
+  border-radius: 50%; /* 完全な円にする */
+  color: #CCC;
+}
+/* END */
