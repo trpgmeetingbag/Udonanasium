@@ -11,7 +11,6 @@ export class GameCharacter extends TabletopObject {
   @SyncVar() komaImageHeignt: number = 100;        // 指定されたコマ画像の高さ
   // 【追加】リリィ互換のチャットカラー保存用プロパティ（0番目のみ）
 // 修正：ドットを含む属性は、ユドナリウムの仕様上「入れ子オブジェクト」として定義します
-  @SyncVar() chatColorCode: { '0': string, '1': string, '2': string } = { '0': '', '1': '', '2': '' };
 
   @SyncVar() isLock: boolean = false; // コマの固定フラグ
   @SyncVar() isDropShadow: boolean = false; // 影の表示フラグ
@@ -22,6 +21,10 @@ export class GameCharacter extends TabletopObject {
   @SyncVar() nonTalkFlag: boolean = false;    // 【追加】発言しないフラグ
   @SyncVar() syncDummyCounter: number = 0;
 
+    @SyncVar() chatColorCode: string[] = ["#000000", "#FF0000", "#0099FF"];
+      // @SyncVar() chatColorCode: { '0': string, '1': string, '2': string } = { '0': '', '1': '', '2': '' };
+
+ 
   
 
   get name(): string { return this.getCommonValue('name', ''); }

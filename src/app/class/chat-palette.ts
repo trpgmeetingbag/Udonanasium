@@ -111,4 +111,15 @@ export class ChatPalette extends ObjectNode {
     super.apply(context);
     this.isAnalized = false;
   }
+
+  
 }
+
+@SyncObject('dice-table-palette')
+export class DiceTablePalette extends ChatPalette {
+}
+
+@SyncObject('buff-palette')
+export class BuffPalette extends ChatPalette {
+}
+

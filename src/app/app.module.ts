@@ -63,6 +63,8 @@ import { ChatDetailSettingComponent } from './component/chat-detail-setting/chat
 
 import { NgSelectModule } from '@ng-select/ng-select'; // ← これを追加
 
+import { DiceTableSettingComponent } from './component/dice-table-setting/dice-table-setting.component';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -109,7 +111,8 @@ import { NgSelectModule } from '@ng-select/ng-select'; // ← これを追加
     ChatInputComponent,
     ChatTachieComponent, // 追加
     ChatTachieImageComponent, // 追加
-    ChatDetailSettingComponent, // ←これを追加
+    ChatDetailSettingComponent,
+    DiceTableSettingComponent 
   ],
   imports: [
     BrowserModule,

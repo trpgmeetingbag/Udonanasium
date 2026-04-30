@@ -19,6 +19,8 @@ import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
 import { ChatTab } from '@udonarium/chat-tab';
 import { DataElement } from '@udonarium/data-element';
 
+import { ChatColorSettingComponent } from '../chat-color-setting/chat-color-setting.component';
+
 @Component({
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
@@ -75,27 +77,22 @@ get gameType(): string {
 
   get chatColor(): string {
     const char = this.character;
-    if (char && char.detailDataElement) {
-      let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
-      if (colorElm && colorElm.value) return colorElm.value.toString();
+    if (char) {
+      // キャラクターの3色パレットから現在選択中の色を返す
+      return char.chatColorCode[this.colorNum];
     }
-    return localStorage.getItem('myChatColor') || '#000000';
+    // プレイヤー（自分）の3色パレットから現在選択中の色を返す
+    return this.myPeer ? this.myPeer.chatColorCode[this.colorNum] : '#000000';
   }
 
   set chatColor(color: string) {
+    // 互換性維持のためセッターを残しますが、
+    // 基本的には showColorSetting() 経由で chatColorCode 配列を直接書き換えます
     const char = this.character;
-    if (char && char.detailDataElement) {
-      let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
-      if (!colorElm) {
-        colorElm = new DataElement();
-        colorElm.name = 'chatColor';
-        colorElm.value = color;
-        char.detailDataElement.appendChild(colorElm);
-      } else {
-        colorElm.value = color;
-      }
-    } else {
-      localStorage.setItem('myChatColor', color);
+    if (char) {
+      char.chatColorCode[this.colorNum] = color;
+    } else if (this.myPeer) {
+      this.myPeer.chatColorCode[this.colorNum] = color;
     }
   }
 
@@ -164,6 +161,30 @@ get gameType(): string {
   get otherPeers(): PeerCursor[] { return ObjectStore.instance.getObjects(PeerCursor); }
 
   private calcFitHeightInterval: NodeJS.Timeout = null;
+
+
+  // 選択中の色の番号 (0:第1色, 1:第2色, 2:第3色)
+  public colorNum: number = 0;
+
+  // ボタンの見た目（ボーダーや角丸）を管理するプロパティ
+  get colorSelectorBoxBorder_0() { return this.colorNum == 0 ? 2 : 1; }
+  get colorSelectorBoxBorder_1() { return this.colorNum == 1 ? 2 : 1; }
+  get colorSelectorBoxBorder_2() { return this.colorNum == 2 ? 2 : 1; }
+  get colorSelectorRadius_0() { return this.colorNum == 0 ? '50%' : '0'; }
+  get colorSelectorRadius_1() { return this.colorNum == 1 ? '50%' : '0'; }
+  get colorSelectorRadius_2() { return this.colorNum == 2 ? '50%' : '0'; }
+
+  // 画面に表示する色コードを取得するゲッター
+  get chatColorCode_0() { return this.getChatColorByIndex(0); }
+  get chatColorCode_1() { return this.getChatColorByIndex(1); }
+  get chatColorCode_2() { return this.getChatColorByIndex(2); }
+
+  private getChatColorByIndex(index: number): string {
+    const char = this.character;
+    if (char) return char.chatColorCode[index];
+    return this.myPeer ? this.myPeer.chatColorCode[index] : '#000000';
+  }
+
 
   constructor(
     private ngZone: NgZone,
@@ -522,5 +543,18 @@ private allowsChat(gameCharacter: GameCharacter): boolean {
 
     if (isUpdated) character.update();
     return results.join('  ');
+  }
+
+  // 使用する色を選択する
+  setColorNum(num: number) {
+    this.colorNum = num;
+  }
+
+  // 色設定ポップアップを開く
+  showColorSetting() {
+    let coordinate = this.pointerDeviceService.pointers[0];
+    let option: PanelOption = { left: coordinate.x - 100, top: coordinate.y - 100, width: 300, height: 150 };
+    let component = this.panelService.open<any>(ChatColorSettingComponent, option); // ChatColorSettingComponentはインポートが必要
+    component.tabletopObject = this.character;
   }
 }

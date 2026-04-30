@@ -134,4 +134,5 @@ export class ChatPaletteComponent implements OnInit, OnDestroy {
       this.palette.setPalette(this.editPalette);
     }
   }
+  
 }

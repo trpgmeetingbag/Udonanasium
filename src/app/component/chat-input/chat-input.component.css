@@ -103,3 +103,13 @@
 ::ng-deep .ud-select .ng-arrow-wrapper {
   height: 24px;
 }
+
+.color-dot {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin: 0 2px;
+  border: solid 1px #666;
+  cursor: pointer;
+  box-sizing: border-box;
+}

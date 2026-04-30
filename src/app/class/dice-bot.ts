@@ -11,6 +11,10 @@ import { EventSystem } from './core/system';
 import { PromiseQueue } from './core/system/util/promise-queue';
 import { StringUtil } from './core/system/util/string-util';
 
+// ▼▼▼ 追加：ダイス表を読み込むためのインポート ▼▼▼
+import { DiceTable } from './dice-table';
+import { DiceTablePalette } from './chat-palette';
+
 // ▼▼▼ 新規追加：色情報を引き継ぐためのクラス ▼▼▼
 import { DataElement } from './data-element';
 // ▲▲▲ 新規追加ここまで ▲▲▲
@@ -40,6 +44,69 @@ export class DiceBot extends GameObject {
         let gameType: string = chatMessage.tag;
 
         try {
+// --- START: ダイス表の割り込み判定 ---
+          // チャットテキストの最初の単語（コマンド）を取得
+          const splitText = text.split(/\s/);
+          if (splitText.length > 0) {
+            // 現在作成されているすべてのダイス表を取得
+            const diceTables = ObjectStore.instance.getObjects(DiceTable);
+            let targetTable: DiceTable = null;
+            
+            // 入力された単語と一致するコマンドを持つダイス表を探す
+            for (const table of diceTables) {
+              if (table.command === splitText[0]) {
+                targetTable = table;
+                break;
+              }
+            }
+
+            // もしダイス表が見つかったら、標準ダイスボットを無視して表を振る
+            if (targetTable) {
+              const tableRegArray = /^((\d+)?\s+)?(.*)?/ig.exec(targetTable.dice);
+              const tableRepeat: number = (tableRegArray[2] != null) ? Number(tableRegArray[2]) : 1;
+              const tableRollText: string = (tableRegArray[3] != null) ? tableRegArray[3] : text;
+              
+              const finalResult: DiceRollResult = { id: targetTable.name, result: '', isSecret: false };
+              
+              // 振る回数（繰り返し）の処理
+              for (let i = 0; i < tableRepeat && i < 32; i++) {
+                // ダイス表に設定されているゲームシステムでダイスを振る
+                const rollResult = await DiceBot.diceRollAsync(tableRollText, targetTable.diceTablePalette.dicebot);
+                if (rollResult.result.length < 1) break;
+
+                finalResult.result += rollResult.result;
+                finalResult.isSecret = finalResult.isSecret || rollResult.isSecret;
+                if (1 < tableRepeat) { finalResult.result += ` #${i + 1}`; }
+              }
+
+              // 振ったダイスの目（末尾の数字）を取得し、パレットから対応する文章を探す
+              const rolledDiceNum = finalResult.result.match(/\d+$/);
+              let tableAns = 'ダイス目の番号が表にありません';
+              
+              if (rolledDiceNum) {
+                const tablePalette = targetTable.diceTablePalette.getPalette();
+                for (const row of tablePalette) {
+                  // 区切り文字（コロンやカンマなど）で分割して番号を確認
+                  const splitRow = row.split(/[:：,，\s]/);
+                  if (splitRow[0] === rolledDiceNum[0]) {
+                    // \n を実際の改行に変換して結果文とする
+                    tableAns = row.replace(/\\n/g, '\n');
+                    break;
+                  }
+                }
+              }
+              
+              // ダイス結果と表の結果を結合して送信
+              finalResult.result += '\n' + tableAns;
+              this.sendResultMessage(finalResult, chatMessage);
+              
+              // ここで処理を終了し、標準のダイスボットへ流さない
+              return; 
+            }
+          }
+          // --- END: ダイス表の割り込み判定 ---
+
+
           let regArray = /^((\d+)?\s+)?(.*)?/ig.exec(text);
           let repeat: number = (regArray[2] != null) ? Number(regArray[2]) : 1;
           let rollText: string = (regArray[3] != null) ? regArray[3] : text;
