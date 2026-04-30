@@ -2,51 +2,65 @@
   <div class="table-cell imagebox">
     <img *ngIf="0 < imageFile.url.length" class="image" [src]="imageFile.url | safe: 'resourceUrl'" />
   </div>
-  <div class="table-cell">
+  <div class="table-cell" style="width:100%">
     <div>
-      <select style="width: 12em;" [(ngModel)]="sendFrom">
-        <option *ngIf="!onlyCharacters" value="{{myPeer?.identifier}}">{{myPeer?.name}}（あなた）</option>
-        <option *ngFor="let gameCharacter of gameCharacters" value="{{gameCharacter.identifier}}">{{gameCharacter.name}}
+      <select class="is-caret" style="width: 12em;" [(ngModel)]="sendFrom">
+        <option *ngIf="!onlyCharacters" [value]="myPeer?.identifier">{{myPeer?.name}}（あなた）</option>
+        <option *ngFor="let gameCharacter of gameCharacters" [value]="gameCharacter.identifier">{{gameCharacter.name}}
         </option>
       </select> ＞
-      <select style="width: 10em;" [(ngModel)]="sendTo">
-        <option value="">全員</option>
-        <option *ngFor="let peer of otherPeers" value="{{peer.identifier}}">{{peer.name}}
+      <select class="is-caret" style="width: 10em;" [(ngModel)]="sendTo">
+        <option [value]="''">全員</option>
+        <option *ngFor="let peer of otherPeers" [value]="peer.identifier">{{peer.name}}
           <ng-container *ngIf="peer === myPeer">（あなた）</ng-container>
         </option>
       </select>
-      <ng-container *ngIf="0 < diceBotInfos.length">
-        <select #select style="width: 12em;" (change)="loadDiceBot(select.value)" [(ngModel)]="gameType"
-          [ngModelOptions]="{standalone: true}">
-          <option *ngFor="let diceBotInfo of diceBotInfos" value="{{diceBotInfo.id}}">{{diceBotInfo.name === "DiceBot" ? "ダイスボット指定なし" : diceBotInfo.name}}</option>
-        </select>
-      </ng-container>
-      <ng-container *ngIf="diceBotInfos.length < 1">
-        <select style="width: 12em;" disabled>
-          <option value="">ダイスボット読込中...</option>
-        </select>
-      </ng-container>
-      <button (click)="showDicebotHelp()" [disabled]="diceBotInfos.length < 1">?</button>
+      <select class="is-caret" style="width: 15em; margin-left:.1em;" (change)="loadDiceBot($any($event.target).value)" [(ngModel)]="gameType"
+        [ngModelOptions]="{standalone: true}">
+        <option *ngFor="let diceBotInfo of diceBotInfos" [value]="diceBotInfo.id">{{diceBotInfo.name}}</option>
+      </select>
+      <button (click)="showDicebotHelp()">?</button>
+    </div>
+    
+    <div *ngIf="!isGameTypeInList()">
+      <font size="1.5" color="#FF0000">※ダイスボットが見つかりません(おそらくバージョン違いです)再選択してください。</font>
     </div>
 
-    <!------------------------------------- ↓追加分↓ ------------------------------------->
-    <div style="margin-top: 4px; margin-bottom: 4px; display: flex; align-items: center;">
-      <input type="color" [(ngModel)]="chatColor" [ngModelOptions]="{standalone: true}" style="width: 25px; height: 25px; padding: 0; border: none; cursor: pointer;" title="文字色変更">
-      <span style="font-size: 12px; margin-left: 4px; margin-right: 12px;">🎨色設定</span>
-      
-      <input type="range" min="0" [max]="maxTachieIndex" [(ngModel)]="tachieIndex" [ngModelOptions]="{standalone: true}" style="width: 150px;" [disabled]="maxTachieIndex === 0">
-      <span style="font-size: 12px; margin-left: 4px; font-weight: bold;">{{currentTachieName}}</span>
+    <!-- START: 色設定と立ち絵設定のテーブル -->
+    <div class="table">
+      <!-- 色設定 -->
+      <div class="table-cell color-setting-tag" style="vertical-align: middle;">
+        <input type="color" [(ngModel)]="chatColor" [ngModelOptions]="{standalone: true}" style="width: 20px; height: 20px; padding: 0; border: 1px solid #444; cursor: pointer; vertical-align: middle;" title="文字色変更">
+        <span style="font-size: 11px; margin-left: 2px;">色設定</span>
+      </div>
+
+      <!-- 立ち絵設定 -->
+      <div class="table-cell tachie-tag" style="vertical-align: middle; padding-left: 10px;">
+        <ng-container *ngIf="maxTachieIndex === 0">
+          <input type="range" style="font-size: 0.8em; min-width: 1em; width: 10em;" min="0" max="0" [(ngModel)]="tachieIndex" disabled />
+          <span style="font-size: 11px; font-weight: bold; margin-left: 4px;">{{currentTachieName}}</span>
+        </ng-container>
+        <ng-container *ngIf="maxTachieIndex > 0">
+          <input type="range" style="font-size: 0.8em; min-width: 1em; width: 10em;" min="0" [max]="maxTachieIndex" [(ngModel)]="tachieIndex" />
+          <span style="font-size: 11px; font-weight: bold; margin-left: 4px;">{{tachieIndex}}/{{maxTachieIndex}} {{currentTachieName}}</span>
+        </ng-container>
+      </div>
+      <div class="table-cell"></div>
     </div>
-    <!------------------------------------- ↑追加分↑ ------------------------------------->
+    <!-- END: 色設定と立ち絵設定 -->
 
     <div>
       <form>
-        <textarea class="chat-input" placeholder="Enterで送信  Shift+Enterで改行" [(ngModel)]="text"
-          [ngModelOptions]="{standalone: true}" (input)="onInput()" (keydown.enter)="sendChat($event)"
+        <textarea class="chat-input is-caret" placeholder="Enter:送信 Shift+Enter:改行 Ctrl+上下:履歴" [(ngModel)]="text"
+          [ngModelOptions]="{standalone: true}" (input)="onInput()" 
+          (keydown.enter)="sendChat($any($event))"
+          (keydown.control.arrowup)="moveHistory($any($event), -1)" 
+          (keydown.control.arrowdown)="moveHistory($any($event), 1)"
           #textArea></textarea>
-        <button type="submit" (click)="sendChat(null)">SEND</button>
+        <button type="submit" (click)="sendChat($any($event))">SEND</button>
       </form>
     </div>
+    
     <div class="writing-info">
       <ng-container *ngIf="0 < writingPeerNames.length">
         <span *ngFor="let peerName of writingPeerNames; index as i" style="font-weight: bold;">{{peerName}}<span

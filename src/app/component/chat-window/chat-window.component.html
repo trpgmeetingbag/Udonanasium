@@ -1,31 +1,27 @@
-<!--<h2>チャットシステム</h2>-->
 <div class="component">
 
-<chat-tachie-img *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie-img>
-
   <div class="log">
+    <!-- 独自拡張の立ち絵コンポーネントを log の中に移動 -->
+    <chat-tachie-img *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie-img>
+    
     <chat-tab *ngIf="chatTab" [chatTab]="chatTab" (onAddMessage)="scrollToBottom()"></chat-tab>
     <div *ngIf="!chatTab">※チャットタブの内容が更新されました。チャットタブを選択しなおすか、このチャットウィンドウを開きなおしてください。</div>
   </div>
   
   <div class="sticky-bottom">
-      
-    <!-- 古いコードのせいでチャットが真ん中に寄る……らしいので削除 -->
-    <chat-tachie *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie>
-<!-- <div class="log">
-  <chat-tab *ngIf="chatTab" [chatTab]="chatTab" (onAddMessage)="scrollToBottom()"></chat-tab>
-  <div *ngIf="!chatTab">※チャットタブの内容が更新されました。チャットタブを選択しなおすか、このチャットウィンドウを開きなおしてください。</div>
+    <form>
+      <!-- 古い立ち絵コンポーネント（不要であれば後で削除可能です） -->
+      <chat-tachie *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie>
+
+      <div class="chat-tab">
+        <label *ngFor="let chatTab of chatMessageService.chatTabs; trackBy: trackByChatTab">
+          <input name="chat-tab" type="radio" value="{{chatTab.identifier}}" ng-control="options" [(ngModel)]="chatTabidentifier">
+          <div>{{chatTab.name}}<badge *ngIf="chatTab.hasUnread" class="badge" [count]="chatTab.unreadLength"></badge></div>
+        </label>
+        <button class="tab-setting small-font" (click)="showTabSetting()"><i class="material-icons small-font">settings</i>タブ設定</button>
+      </div>
+    </form>
+    <chat-input [chatTabidentifier]="chatTabidentifier" [(gameType)]="gameType" [(sendFrom)]="sendFrom" (chat)="sendChat($event)"></chat-input>
+  </div>
+  
 </div>
-<div class="sticky-bottom"> -->
-  <form>
-    <div class="chat-tab">
-      <label *ngFor="let chatTab of chatMessageService.chatTabs; trackBy: trackByChatTab">
-        <input name="chat-tab" type="radio" value="{{chatTab.identifier}}" ng-control="options" [(ngModel)]="chatTabidentifier">
-        <div>{{chatTab.name}}<badge *ngIf="chatTab.hasUnread" class="badge" [count]="chatTab.unreadLength"></badge></div>
-      </label>
-      <button class="tab-setting small-font" (click)="showTabSetting()"><i class="material-icons small-font">settings</i>タブ設定</button>
-    </div>
-  </form>
-  <chat-input [chatTabidentifier]="chatTabidentifier" [(gameType)]="gameType" [(sendFrom)]="sendFrom" (chat)="sendChat($event)"></chat-input>
-</div>
-<!--<div style="white-space:pre-wrap; font-size: 8px;"><span>{{gameHelp}}</span></div>-->

@@ -106,15 +106,13 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     this.tabletopObject.setLocation(locationName);
   }
 
-// --- START: コマ画像変更時に0番目を同期 ---
   openModal(name: string = '', isAllowedEmpty: boolean = false) {
     this.modalService.open<string>(FileSelecterComponent, { isAllowedEmpty: isAllowedEmpty }).then(value => {
       if (!this.tabletopObject || !this.tabletopObject.imageDataElement || !value) return;
       let element = this.tabletopObject.imageDataElement.getFirstElementByName(name);
       if (!element) return;
-      element.value = value; // 盤面のコマ画像の変更
+      element.value = value; 
 
-      // 変更されたのがコマ本体（imageIdentifier）なら、立ち絵の0番目も同期する
       if (name === 'imageIdentifier') {
         let tachies = this.tachieElements;
         if (tachies.length > 0) {
@@ -123,25 +121,6 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
       }
     });
   }
-  // openModal(name: string = '', isAllowedEmpty: boolean = false) {
-  //   this.modalService.open<string>(FileSelecterComponent, { isAllowedEmpty: isAllowedEmpty }).then(value => {
-  //     if (!this.tabletopObject || !this.tabletopObject.imageDataElement || !value) return;
-  //     let element = this.tabletopObject.imageDataElement.getFirstElementByName(name);
-  //     if (!element) return;
-  //     element.value = value; // 既存の処理（コマ画像の変更）
-
-  //     // ーーーここから追加ロジックーーー
-  //     // 変更されたのがコマ画像（imageIdentifier）だった場合、立ち絵リストの0番目も同期する
-  //     if (name === 'imageIdentifier') {
-  //       const root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
-  //       // 立ち絵フォルダが存在し、かつ0番目（基本画像）が既に作成されている場合のみ上書きする
-  //       if (root && root.children.length > 0) {
-  //         root.children[0].value = value;
-  //       }
-  //     }
-  //     // ーーー追加ロジックここまでーーー
-  //   });
-  // }
 
   private get tachieRootElement(): DataElement {
     if (!this.tabletopObject) return null;
@@ -161,90 +140,49 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     return root;
   }
 
-// --- START: システム設定用のデータ管理 ---
-// --- START: システム設定用のデータ管理（リリィ互換版） ---
-
-
-
+// === ↓ 修正ポイント（Lily仕様のプロパティアクセス ＋ 過去の即時反映ロジックの復活） ↓ ===
   get disableChat(): boolean {
     if (!this.tabletopObject) return false;
-    const val = this.tabletopObject.getAttribute('nonTalkFlag');
-    return val === 'true';
+    return (this.tabletopObject as GameCharacter).nonTalkFlag;
   }
 
   set disableChat(value: boolean) {
     if (!this.tabletopObject) return;
-    this.tabletopObject.setAttribute('nonTalkFlag', value ? 'true' : 'false');
-    if (this.tabletopObject) this.tabletopObject.update();
+    let character = this.tabletopObject as GameCharacter;
+    character.nonTalkFlag = value;
+    
+    // 強制同期用のダミーカウンターを加算し、キャラクターの更新をネットワークに通知
+    character.syncDummyCounter++;
+    character.update();
   }
-  // --- END ---
-  // get hideInTableInventory(): boolean {
-  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
-  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-  //   if (!root) return false;
-  //   let el = root.getFirstElementByName('hideInTableInventory');
-  //   return el ? el.value === 'true' : false;
-  // }
 
-  // set hideInTableInventory(value: boolean) {
-  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
-  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-  //   if (!root) {
-  //     root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
-  //     this.tabletopObject.detailDataElement.appendChild(root);
-  //   }
-  //   let el = root.getFirstElementByName('hideInTableInventory');
-  //   if (!el) {
-  //     el = DataElement.create('hideInTableInventory', value ? 'true' : 'false', {}, 'hideInTableInventory_' + this.tabletopObject.identifier);
-  //     root.appendChild(el);
-  //   } else {
-  //     el.value = value ? 'true' : 'false';
-  //   }
-  //   if (this.tabletopObject) this.tabletopObject.update();
-  // }
+  get hideInTableInventory(): boolean {
+    if (!this.tabletopObject) return false;
+    return (this.tabletopObject as GameCharacter).hideInventory;
+  }
 
-  // get disableChat(): boolean {
-  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return false;
-  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-  //   if (!root) return false;
-  //   let el = root.getFirstElementByName('disableChat');
-  //   return el ? el.value === 'true' : false;
-  // }
+  set hideInTableInventory(value: boolean) {
+    if (!this.tabletopObject) return;
+    let character = this.tabletopObject as GameCharacter;
+    character.hideInventory = value;
+    
+    // 強制同期用のダミーカウンターを加算し、キャラクターの更新をネットワークに通知
+    character.syncDummyCounter++;
+    character.update();
+    
+    // インベントリ画面のUIに「再描画せよ」というイベントを直接飛ばす（過去の大正解ロジック）
+    EventSystem.trigger('UPDATE_INVENTORY', null);
+  }
+  // === ↑ 修正ポイント ↑ ===
 
-  // set disableChat(value: boolean) {
-  //   if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
-  //   let root = this.tabletopObject.detailDataElement.getFirstElementByName('システム設定');
-  //   if (!root) {
-  //     root = DataElement.create('システム設定', '', {}, 'システム設定_' + this.tabletopObject.identifier);
-  //     this.tabletopObject.detailDataElement.appendChild(root);
-  //   }
-  //   let el = root.getFirstElementByName('disableChat');
-  //   if (!el) {
-  //     el = DataElement.create('disableChat', value ? 'true' : 'false', {}, 'disableChat_' + this.tabletopObject.identifier);
-  //     root.appendChild(el);
-  //   } else {
-  //     el.value = value ? 'true' : 'false';
-  //   }
-  //   if (this.tabletopObject) this.tabletopObject.update();
-  // }
-  // --- END ---
-
-get tachiePosition(): number {
+  get tachiePosition(): number {
     if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return 0;
     let root = this.tabletopObject.detailDataElement.getFirstElementByName('立ち絵位置');
     if (!root) return 0;
     let posElement = root.getFirstElementByName('POS');
     if (!posElement) return 0;
-    // currentValue（現在値）を優先して読み取る
     return posElement.currentValue !== undefined ? Number(posElement.currentValue) : Number(posElement.value);
   }
-  // get tachiePosition(): number {
-  //   const root = this.tachieRootElement;
-  //   if (!root) return 0;
-  //   const posElement = root.getFirstElementByName('tachiePosition');
-  //   if (!posElement) return 0;
-  //   return Number(posElement.value) || 0;
-  // }
 
   set tachiePosition(value: number) {
     if (!this.tabletopObject || !this.tabletopObject.detailDataElement) return;
@@ -255,39 +193,18 @@ get tachiePosition(): number {
     }
     let posElement = root.getFirstElementByName('POS');
     if (!posElement) {
-      // 新規作成時は、最大値(value)を11、現在値(currentValue)をスライダーの値に設定
       posElement = DataElement.create('POS', 11, { type: 'numberResource', currentValue: value.toString() }, 'POS_' + this.tabletopObject.identifier);
       root.appendChild(posElement);
     } else {
-      // 更新時は現在値のみを変更し、最大値は常に11に固定する
       posElement.currentValue = value;
       posElement.value = 11; 
     }
   }
-  // set tachiePosition(value: number) {
-  //   const root = this.tachieRootElement;
-  //   if (!root) return;
-  //   const posElement = root.getFirstElementByName('tachiePosition');
-  //   if (posElement) {
-  //     posElement.value = value;
-  //   }
-  // }
 
-// ーーーリリィ互換：シート側も imageIdentifier を全て取得ーーー
-
-get tachieElements(): DataElement[] {
+  get tachieElements(): DataElement[] {
     if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return [];
-    // リリィ互換：imageDataElement 直下にある 'imageIdentifier' 要素をすべて取得
     return this.tabletopObject.imageDataElement.children.filter(e => (e as DataElement).name === 'imageIdentifier') as DataElement[];
   }
-// --- START: 立ち絵とコマ画像の切り離し (1/3) ---
-  // get tachieElements(): DataElement[] {
-  //   if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return [];
-  //   // 独立した tachie フォルダからのみ画像を取得するよう修正
-  //   let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
-  //   return root ? (root.children as DataElement[]).filter(e => e.type === 'image') : [];
-  // }
-
 
   getTachieUrl(identifier: string | number): string {
     const image = ImageStorage.instance.get(identifier ? identifier.toString() : '');
@@ -311,7 +228,6 @@ get tachieElements(): DataElement[] {
       this.tabletopObject.detailDataElement.appendChild(root);
     }
     
-    // コマ画像の最大値は、現在の立ち絵リストの長さに追従する
     let maxIcon = Math.max(0, this.tachieElements.length - 1);
     let indexElement = root.getFirstElementByName('ICON');
     
@@ -319,38 +235,12 @@ get tachieElements(): DataElement[] {
       indexElement = DataElement.create('ICON', maxIcon, { type: 'numberResource', currentValue: value.toString() }, 'ICON_' + this.tabletopObject.identifier);
       root.appendChild(indexElement);
     } else {
-      // 現在値を更新し、最大値を立ち絵リストの数に合わせる
       indexElement.currentValue = value;
       indexElement.value = maxIcon;
     }
     
     if (this.tabletopObject) this.tabletopObject.update();
   }
-// // --- START: スライダー操作時に盤面の表示を即座に更新する修正 ---
-//   get iconIndex(): number {
-//     const root = this.tachieRootElement;
-//     if (!root) return 0;
-//     const indexElement = root.getFirstElementByName('iconIndex');
-//     return indexElement ? Number(indexElement.value) : 0;
-//   }
-
-//   set iconIndex(value: number) {
-//     const root = this.tachieRootElement;
-//     if (root) {
-//       let indexElement = root.getFirstElementByName('iconIndex');
-//       if (!indexElement) {
-//         indexElement = DataElement.create('iconIndex', 0, { type: 'number' });
-//         root.appendChild(indexElement);
-//       }
-//       indexElement.value = value;
-      
-//       // スライダーの値を書き換えた後、キャラクター本体に更新を通知します。
-//       // これにより、盤面上のコマが imageFile を読み直し、表示が即座に反映されます。
-//       if (this.tabletopObject) this.tabletopObject.update();
-//     }
-//   }
-// --- END ---
-
 
   openTachieImageModal(targetTachie?: DataElement) {
     this.panelService.open(FileSelecterComponent, {
@@ -364,7 +254,6 @@ get tachieElements(): DataElement[] {
       if (event.data && event.data.fileIdentifier) {
         if (targetTachie) {
           targetTachie.value = event.data.fileIdentifier;
-          // ここでの同期処理（0番目なら盤面も変える等）を削除し、完全に独立させます
         } else {
           this.addTachieImage(event.data.fileIdentifier);
         }
@@ -372,56 +261,10 @@ get tachieElements(): DataElement[] {
       EventSystem.unregister(this, 'SELECT_FILE');
     });
   }
-// --- END ---
-//   set iconIndex(index: number) {
-//     if (this.tachieElements.length > index && this.tabletopObject) {
-//       const imageElement = this.tabletopObject.imageDataElement?.getFirstElementByName('imageIdentifier');
-//       if (imageElement) {
-//         imageElement.value = this.tachieElements[index].value;
-//       }
-//     }
-//   }
 
-//   // ーーー変更2：画像変更時に、0番目ならコマ画像も同期するーーー
-// // --- START: 立ち絵とコマ画像の切り離し (2/3) ---
-//   openTachieImageModal(targetTachie?: DataElement) {
-//     this.panelService.open(FileSelecterComponent, {
-//       width: 400,
-//       height: 600,
-//       title: targetTachie ? '画像の変更' : '立ち絵画像の追加'
-//     });
-
-//     EventSystem.unregister(this, 'SELECT_FILE');
-//     EventSystem.register(this).on('SELECT_FILE', event => {
-//       if (event.data && event.data.fileIdentifier) {
-//         if (targetTachie) {
-//           targetTachie.value = event.data.fileIdentifier;
-          
-//           // 変更した立ち絵が0番目（基本画像）だった場合、盤面のコマ画像も同期する
-//           if (this.tachieElements.indexOf(targetTachie) === 0) {
-//             const baseImage = this.tabletopObject.imageDataElement?.getFirstElementByName('imageIdentifier');
-//             if (baseImage) baseImage.value = event.data.fileIdentifier;
-//           }
-//         } else {
-//           this.addTachieImage(event.data.fileIdentifier);
-//         }
-//       }
-//       EventSystem.unregister(this, 'SELECT_FILE');
-//     });
-//   }
-
-
-
-
-// ーーーリリィ互換：立ち絵の追加処理ーーー
-
-// --- START: リリィ互換形式での立ち絵追加・削除 ---
   private addTachieImage(identifier: string) {
     if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return;
-    
     const imageRoot = this.tabletopObject.imageDataElement;
-    
-    // リリィ互換：imageDataElement 直下に 'imageIdentifier' という名前の要素を追加
     let newTachie = new DataElement();
     newTachie.name = 'imageIdentifier';
     newTachie.currentValue = '差分' + this.tachieElements.length;
@@ -435,43 +278,7 @@ get tachieElements(): DataElement[] {
       this.tabletopObject.imageDataElement.removeChild(element);
     }
   }
-// --- START: 立ち絵追加時に専用フォルダと0番目を自動生成 ---
-  // private addTachieImage(identifier: string) {
-  //   let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
-    
-  //   // 初回のみ：tachieフォルダを作り、現在のコマ画像を「基本画像」として0番目に確保する
-  //   if (!root) {
-  //     root = new DataElement();
-  //     root.name = 'tachie';
-  //     root.type = 'image';
-  //     this.tabletopObject.imageDataElement.appendChild(root);
-      
-  //     let baseImage = this.tabletopObject.imageDataElement.getFirstElementByName('imageIdentifier');
-  //     if (baseImage && baseImage.value) {
-  //       let defaultTachie = new DataElement();
-  //       defaultTachie.name = 'imageIdentifier';
-  //       defaultTachie.currentValue = '基本画像';
-  //       defaultTachie.value = baseImage.value;
-  //       defaultTachie.type = 'image';
-  //       root.appendChild(defaultTachie);
-  //     }
-  //   }
-    
-  //   // 選択された新しい差分を追加する
-  //   let newTachie = new DataElement();
-  //   newTachie.name = 'imageIdentifier';
-  //   newTachie.currentValue = '差分' + root.children.length;
-  //   newTachie.value = identifier;
-  //   newTachie.type = 'image';
-  //   root.appendChild(newTachie);
-  // }
 
-  // removeTachieImage(element: DataElement) {
-  //   let root = this.tabletopObject.imageDataElement.getFirstElementByName('tachie');
-  //   if (root) root.removeChild(element);
-  // }
-// --- END ---
-// --- START: リリィ互換 表示サイズ設定メソッド ---
   chkKomaSize(height: number) {
     let character = <GameCharacter>this.tabletopObject;
     if (height < 50) height = 50;
@@ -482,7 +289,7 @@ get tachieElements(): DataElement[] {
   chkPopWidth(width: number) {
     let character = <GameCharacter>this.tabletopObject;
     if (width < 270) width = 270;
-    if (width > 1000) width = 1000; // リリィのバグ修正：スライダー上限に合わせて1000を最大値とする
+    if (width > 1000) width = 1000;
     character.overViewWidth = width;
   }
 
@@ -492,36 +299,15 @@ get tachieElements(): DataElement[] {
     if (maxHeight > 1000) maxHeight = 1000;
     character.overViewMaxHeight = maxHeight;
   }
-// --- END ---
 
-// --- システム設定用のデータ管理（修正版） ---
-// --- システム設定用のデータ管理（リリィ互換・属性ベースに戻す） ---
-set hideInTableInventory(value: boolean) {
-    if (!this.tabletopObject) return;
-    const character = this.tabletopObject as GameCharacter;
-
-    // 1. プロパティを更新（インベントリのフィルタ用）
-    character.hideInventory = value;
-    
-    // 2. 属性を更新（盤面のコマの表示色・互換性用）
-    character.setAttribute('hideInventory', value ? 'true' : 'false');
-
-    // 3. 強制再描画のトリガー（リリィ版の知恵）
-    character.syncDummyCounter++;
-    character.update();
-    EventSystem.trigger('UPDATE_INVENTORY', null);
-  }
-
-// --- START: 共有メモ用の設定メソッド ---
   clickLimitHeight() {
-    // 高さが更新されない場合があるので、少し遅延させてから盤面のメモに再計算を指示する
     setTimeout(() => { 
       EventSystem.trigger('RESIZE_NOTE_OBJECT', { identifier: this.tabletopObject.identifier });
     }, 100);
   }
 
   chkNotePopWidth(width: number) {
-    let note = this.tabletopObject as any; // TextNoteとして扱うためのキャスト
+    let note = this.tabletopObject as any; 
     if (width < 250) width = 250;
     if (width > 1000) width = 1000;
     note.overViewWidth = width;
@@ -533,22 +319,18 @@ set hideInTableInventory(value: boolean) {
     if (maxHeight > 1000) maxHeight = 1000;
     note.overViewMaxHeight = maxHeight;
   }
-  // --- END ---
 
-  // --- START: カード・山札用の設定メソッド ---
   chkCardPopWidth(width: number) {
-    let card = this.tabletopObject as any; // Card または CardStack
+    let card = this.tabletopObject as any; 
     if (width < 250) width = 250;
     if (width > 1000) width = 1000;
     card.overViewWidth = width;
   }
 
   chkCardPopMaxHeight(maxHeight: number) {
-    let card = this.tabletopObject as any; // Card または CardStack
+    let card = this.tabletopObject as any; 
     if (maxHeight < 250) maxHeight = 250;
     if (maxHeight > 1000) maxHeight = 1000;
     card.overViewMaxHeight = maxHeight;
   }
-  // --- END ---
-
 }

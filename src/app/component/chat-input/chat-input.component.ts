@@ -1,5 +1,5 @@
-
 import { Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output, ViewChild, ChangeDetectorRef } from '@angular/core';
+import GameSystemClass from 'bcdice/lib/game_system';
 import { ChatMessage } from '@udonarium/chat-message';
 import { ImageFile } from '@udonarium/core/file-storage/image-file';
 import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
@@ -15,11 +15,9 @@ import { ChatMessageService } from 'service/chat-message.service';
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 
-import { DataElement } from '@udonarium/data-element';
 import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
-
 import { ChatTab } from '@udonarium/chat-tab';
-
+import { DataElement } from '@udonarium/data-element';
 
 @Component({
   selector: 'chat-input',
@@ -34,24 +32,26 @@ export class ChatInputComponent implements OnInit, OnDestroy {
 
   @Input('gameType') _gameType: string = '';
   @Output() gameTypeChange = new EventEmitter<string>();
-  get gameType(): string { return this._gameType };
-  set gameType(gameType: string) { this._gameType = gameType; this.gameTypeChange.emit(gameType); }
+get gameType(): string { 
+    return this._gameType ? this._gameType : 'DiceBot'; 
+  }
+  
+  set gameType(gameType: string) { 
+    this._gameType = gameType; 
+    this.gameTypeChange.emit(gameType); 
+  }
 
   @Input('sendFrom') _sendFrom: string = this.myPeer ? this.myPeer.identifier : '';
   @Output() sendFromChange = new EventEmitter<string>();
   get sendFrom(): string { return this._sendFrom };
-  // set sendFrom(sendFrom: string) { this._sendFrom = sendFrom; this.sendFromChange.emit(sendFrom); }
-  // ▼▼▼ 修正：切り替わり時に tachieIndex を 0 にリセット ▼▼▼
   set sendFrom(sendFrom: string) { 
     let hasChanged = this._sendFrom !== sendFrom;
     this._sendFrom = sendFrom; 
     this.sendFromChange.emit(sendFrom); 
-    
     if (hasChanged) {
       this.tachieIndex = 0;
     }
   }
-  // ▲▲▲ 修正ここまで ▲▲▲
 
   @Input('sendTo') _sendTo: string = '';
   @Output() sendToChange = new EventEmitter<string>();
@@ -63,100 +63,48 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   get text(): string { return this._text };
   set text(text: string) { this._text = text; this.textChange.emit(text); }
 
-  // ーーーここから変更ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
-  tachiePos: number = 0;         // デフォルトのPOS（0）
+  public isPaletteMode: boolean = false;
 
-  // textやgameTypeと一緒に、colorとposも渡せるように拡張
-// ーーーここから修正（クラッシュ回避＆色の保存ロジック復元）ーーー
+  @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }>();
+
+  // START: 現在の仕様の色と立ち絵管理
   get character(): GameCharacter | null {
     let object = ObjectStore.instance.get(this.sendFrom);
-    // PeerCursor（プレイヤー自身）などが混ざってクラッシュしないよう、GameCharacter型か厳密にチェックします
     return object instanceof GameCharacter ? object : null;
   }
 
-  // ーーーリリィ互換：色の保存・取得ーーー
-// ーーーリリィ互換：色の保存・取得（完全独立版）ーーー
   get chatColor(): string {
     const char = this.character;
-    if (char) {
-      // 1. リリィ互換のオブジェクトプロパティから色を取得
-      if (char.chatColorCode && char.chatColorCode['0']) {
-        return char.chatColorCode['0'];
-      }
-      // 2. 過去の独自方式で保存したコマへの後方互換
-      if (char.detailDataElement) {
-        let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
-        if (colorElm && colorElm.value) return colorElm.value.toString();
-      }
-      // 【修正】コマを選択しているが、まだ色が未設定（新規作成時など）の場合は、
-      // プレイヤー個人の色を呼ばずに、デフォルトの黒（#000000）を返す。
-      return '#000000';
+    if (char && char.detailDataElement) {
+      let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
+      if (colorElm && colorElm.value) return colorElm.value.toString();
     }
-    
-    // コマを選択していない（プレイヤー自身としての発言）場合のみ、ブラウザ保存の色を呼ぶ
     return localStorage.getItem('myChatColor') || '#000000';
   }
 
   set chatColor(color: string) {
     const char = this.character;
-    if (char) {
-      // リリィ互換のオブジェクトプロパティに色を保存
-      if (!char.chatColorCode) {
-        char.chatColorCode = { '0': '', '1': '', '2': '' };
+    if (char && char.detailDataElement) {
+      let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
+      if (!colorElm) {
+        colorElm = new DataElement();
+        colorElm.name = 'chatColor';
+        colorElm.value = color;
+        char.detailDataElement.appendChild(colorElm);
+      } else {
+        colorElm.value = color;
       }
-      char.chatColorCode['0'] = color;
     } else {
       localStorage.setItem('myChatColor', color);
     }
   }
-//   // キャラクターの色を保存・取得するロジック
-//   get chatColor(): string {
-//     const char = this.character;
-//     if (char && char.detailDataElement) {
-//       let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
-//       return colorElm && colorElm.value ? colorElm.value.toString() : '#000000';
-//     }
-//     return localStorage.getItem('myChatColor') || '#000000'; // コマ未選択時はプレイヤー毎に保存
-//   }
 
-// set chatColor(color: string) {
-//     const char = this.character;
-//     if (char && char.detailDataElement) {
-//       let colorElm = char.detailDataElement.getFirstElementByName('chatColor');
-//       if (!colorElm) {
-//         // 修正：引数なしで生成し、プロパティとして名前と色を設定します
-//         colorElm = new DataElement();
-//         colorElm.name = 'chatColor';
-//         colorElm.value = color;
-//         char.detailDataElement.appendChild(colorElm);
-//       } else {
-//         colorElm.value = color;
-//       }
-//     } else {
-//       localStorage.setItem('myChatColor', color);
-//     }
-//   }
-
-  // 立ち絵リストを抽出するロジック
-  // ーーーリリィ互換：立ち絵リストの抽出ーーー
-// --- START: 立ち絵リストを専用フォルダから取得するように修正 ---
-
-// --- START: チャット入力欄の立ち絵取得をリリィ互換（フラット）に統一 ---
   get tachieElements(): DataElement[] {
     const char = this.character;
     if (!char || !char.imageDataElement) return [];
-    // 'tachie' フォルダではなく、直下の 'imageIdentifier' を取得
     return char.imageDataElement.children.filter(e => (e as DataElement).name === 'imageIdentifier') as DataElement[];
   }
-  // get tachieElements(): DataElement[] {
-  //   const char = this.character;
-  //   if (!char || !char.imageDataElement) return [];
-    
-  //   // 独立した 'tachie' フォルダを探し、その中の画像を取得する
-  //   let root = char.imageDataElement.getFirstElementByName('tachie');
-  //   return root ? (root.children as DataElement[]).filter(e => e.type === 'image') : [];
-  // }
-// --- END ---
+
   _tachieIndex: number = 0;
   get tachieIndex(): number {
     const max = this.maxTachieIndex;
@@ -171,78 +119,28 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   get currentTachieName(): string {
     const elements = this.tachieElements;
     if (elements.length === 0) return '基本画像';
-    // リリィ版は name ではなく currentValue に差分名が保存される
     return elements[this.tachieIndex]?.currentValue?.toString() || `差分${this.tachieIndex}`;
   }
-// ーーー変更：純粋に立ち絵フォルダのみを参照するように修正ーーー
-  // get tachieElements(): DataElement[] {
-  //   const char = this.character;
-  //   if (!char || !char.imageDataElement) return [];
-    
-  //   // 立ち絵ルート要素（フォルダ）のみを探す
-  //   const root = char.imageDataElement.getFirstElementByName('tachie')
-  //             || char.detailDataElement?.getFirstElementByName('tachie');
-              
-  //   // フォルダがあればその中身を、なければ空の配列を返す（コマ本体の画像を無理やり混ぜない）
-  //   if (root) return root.children as DataElement[];
-  //   return [];
-  // }
-  // ーーーここまで変更ーーー
 
-  // _tachieIndex: number = 0;
-  // get tachieIndex(): number {
-  //   const max = this.maxTachieIndex;
-  //   return this._tachieIndex > max ? max : this._tachieIndex;
-  // }
-  // set tachieIndex(val: number) { this._tachieIndex = val; }
-
-  // get maxTachieIndex(): number {
-  //   return Math.max(0, this.tachieElements.length - 1);
-  // }
-
-  // get currentTachieName(): string {
-  //   const elements = this.tachieElements;
-  //   if (elements.length === 0) return '基本画像';
-  //   return elements[this.tachieIndex]?.name?.toString() || `差分${this.tachieIndex}`;
-  // }
-
-  // 送信イベントに立ち絵ID（tachieId）を追加
-  @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }>();
-  // ーーーここまで追加・変更ーーー
-  // @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string, color: string, pos: number }>();
-  // ーーーここまで変更ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
-
-  // @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string }>();
-
-  get isDirect(): boolean { return this.sendTo != null && this.sendTo.length ? true : false }
-  gameHelp: string = '';
-
-  //書き換え
   get imageFile(): ImageFile {
     let object = ObjectStore.instance.get(this.sendFrom);
     let image: ImageFile = null;
     if (object instanceof GameCharacter) {
       const elements = this.tachieElements;
-      // スライダーで選ばれた立ち絵があればそれを表示
       if (elements.length > 0 && this.tachieIndex < elements.length) {
         image = ImageStorage.instance.get(elements[this.tachieIndex].value as string);
       }
-      if (!image) image = object.imageFile; // なければ基本画像
+      if (!image) image = object.imageFile;
     } else if (object instanceof PeerCursor) {
       image = object.image;
     }
     return image ? image : ImageFile.Empty;
   }
-  // get imageFile(): ImageFile {
-  //   let object = ObjectStore.instance.get(this.sendFrom);
-  //   let image: ImageFile = null;
-  //   if (object instanceof GameCharacter) {
-  //     image = object.imageFile;
-  //   } else if (object instanceof PeerCursor) {
-  //     image = object.image;
-  //   }
-  //   return image ? image : ImageFile.Empty;
-  // }
+  // END
+
+  gameHelp: string = '';
+
+  get isDirect(): boolean { return this.sendTo != null && this.sendTo.length ? true : false; }
 
   private shouldUpdateCharacterList: boolean = true;
   private _gameCharacters: GameCharacter[] = [];
@@ -265,9 +163,7 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   get myPeer(): PeerCursor { return PeerCursor.myCursor; }
   get otherPeers(): PeerCursor[] { return ObjectStore.instance.getObjects(PeerCursor); }
 
-  // ▼▼▼ 新規追加：自分がパレット内で使われているかを判定するフラグ ▼▼▼
-  public isPaletteMode: boolean = false;
-  // ▲▲▲ 新規追加ここまで ▲▲▲
+  private calcFitHeightInterval: NodeJS.Timeout = null;
 
   constructor(
     private ngZone: NgZone,
@@ -275,7 +171,6 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     private batchService: BatchService,
     private panelService: PanelService,
     private pointerDeviceService: PointerDeviceService,
-    // ▼▼▼ 追加：再描画を指示するためのサービスを注入 ▼▼▼
     private changeDetector: ChangeDetectorRef
   ) { }
 
@@ -294,31 +189,16 @@ export class ChatInputComponent implements OnInit, OnDestroy {
       })
       .on(`UPDATE_GAME_OBJECT/aliasName/${GameCharacter.aliasName}`, event => {
         this.shouldUpdateCharacterList = true;
-
-// ▼▼▼ 追加：キャラクターが更新されたらリスト（プルダウン）を即座に再描画 ▼▼▼
         this.changeDetector.markForCheck();
-        // ▲▲▲ 追加ここまで ▲▲▲
-
         if (event.data.identifier !== this.sendFrom) return;
         let gameCharacter = ObjectStore.instance.get<GameCharacter>(event.data.identifier);
-        if (gameCharacter && !this.allowsChat(gameCharacter)) {
-
-// ▼▼▼ 修正：パレットモードの時は、安全装置（強制切り替え）を発動させない ▼▼▼
+        
         if (gameCharacter && !this.allowsChat(gameCharacter) && !this.isPaletteMode) {
           if (0 < this.gameCharacters.length && this.onlyCharacters) {
             this.sendFrom = this.gameCharacters[0].identifier;
           } else {
             this.sendFrom = this.myPeer.identifier;
           }
-        }
-        // ▲▲▲ 修正ここまで ▲▲▲
-          // if (0 < this.gameCharacters.length && this.onlyCharacters) {
-          //   this.sendFrom = this.gameCharacters[0].identifier;
-          // } else {
-          //   this.sendFrom = this.myPeer.identifier;
-          // }
-
-
         }
       })
       .on('DISCONNECT_PEER', event => {
@@ -373,99 +253,112 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     this.calcFitHeight();
   }
 
-  sendChat(event: Partial<KeyboardEvent>) {
+  // START: リリィ互換 履歴管理
+  private history: string[] = new Array();
+  private currentHistoryIndex: number = -1;
+  private static MAX_HISTORY_NUM = 1000;
+
+  // 型エラーを避けるために any で受け取る
+  moveHistory(event: any, direction: number) {
     if (event) event.preventDefault();
+    if (direction < 0 && this.currentHistoryIndex < 0) {
+      this.currentHistoryIndex = this.history.length - 1;
+    } else if (direction > 0 && this.currentHistoryIndex >= this.history.length - 1) {
+      this.currentHistoryIndex = -1;
+    } else {
+      this.currentHistoryIndex = this.currentHistoryIndex + direction;
+    }
+
+    let histText: string;
+    if (this.currentHistoryIndex < 0) {
+      histText = '';
+    } else {
+      histText = this.history[this.currentHistoryIndex];
+    }
+    this.text = histText;
+    this.previousWritingLength = this.text.length;
+    this.kickCalcFitHeight();
+  }
+  // END
+
+  // 型エラーを避けるために any で受け取る
+  sendChat(event: any) {
+    if (event) event.preventDefault();
+
     if (!this.text.length) return;
     if (event && event.keyCode !== 13) return;
 
     if (!this.sendFrom.length) this.sendFrom = this.myPeer.identifier;
 
-    // 選択中の立ち絵IDを取得して送信データに乗せる
-    let selectedTachieId = '';
-    let statusChangeResult = ''; // ▼ 新規追加：結果を受け取る変数
-    
-    if (this.character) {
+    // 履歴に追加
+    if (this.history.length >= ChatInputComponent.MAX_HISTORY_NUM) {
+      this.history.shift();
+    }
+    this.history.push(this.text);
+    this.currentHistoryIndex = -1;
 
-      // ▼▼▼ 新規追加：ステータス変更解析の前に、テキスト内の最大値参照を数値に置換する ▼▼▼
-       this.text = this.replaceMaxValueReferences(this.text, this.character);
-       // ▲▲▲ 新規追加ここまで ▲▲▲
+    let selectedTachieId = '';
+    let statusChangeResult = '';
+    const character = this.character;
+
+    if (character) {
+       this.text = this.replaceMaxValueReferences(this.text, character);
        
        const elements = this.tachieElements;
        if (elements.length > 0 && this.tachieIndex < elements.length) {
          selectedTachieId = elements[this.tachieIndex].value as string;
-       } else if (this.character.imageFile) {
-         selectedTachieId = this.character.imageFile.identifier;
+       } else if (character.imageFile) {
+         selectedTachieId = character.imageFile.identifier;
        }
 
-// ▼▼▼ 新規追加：チャット送信時にステータス変更コマンドを解析・適用する ▼▼▼
-       //this.applyStatusChanges(this.text, this.character);
-       // ▲▲▲ 新規追加ここまで ▲▲▲
-       // ▼▼▼ 変更：適用処理を呼び出し、結果の文字列を受け取る ▼▼▼
-       statusChangeResult = this.applyStatusChanges(this.text, this.character);
-       // ▲▲▲ 変更ここまで ▲▲▲
-
+       statusChangeResult = this.applyStatusChanges(this.text, character);
     } else if (this.myPeer) {
        selectedTachieId = this.myPeer.imageIdentifier;
     }
 
-    this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo, color: this.chatColor, tachieId: selectedTachieId });
+    this.chat.emit({ 
+      text: this.text, 
+      gameType: this.gameType, 
+      sendFrom: this.sendFrom, 
+      sendTo: this.sendTo, 
+      color: this.chatColor, 
+      tachieId: selectedTachieId 
+    });
 
-// ▼▼▼ 新規追加：ステータス変更があった場合、システムメッセージを追記する ▼▼▼
-    if (statusChangeResult && this.character) {
-       // 本元の発言が確実に先に処理されるよう、ごくわずかに時間をズラす
+    if (statusChangeResult && character) {
        setTimeout(() => {
           let chatTab = ObjectStore.instance.get<ChatTab>(this.chatTabidentifier);
           if (chatTab) {
              let msg = new ChatMessage();
              msg.from = 'System';
              msg.to = this.sendTo;
-             msg.name = this.character.name;
+             msg.name = character.name;
              msg.tag = 'system';
              msg.value = statusChangeResult; 
-             
-             // 【大正解の迂回路】専用メソッド「setAttribute」を使って内部データに直接書き込む
              msg.setAttribute('messColor', this.chatColor);
              msg.setAttribute('originFrom', this.myPeer.identifier);
-             msg.setAttribute('fixd', 'false'); // XMLの fixd="false" を再現
-             
-             // 1970年問題も、専用メソッドに時間を渡して解決！
+             msg.setAttribute('fixd', 'false'); 
              msg.setAttribute('timestamp', this.chatMessageService.getTime() + 1);
-             
-             // オブジェクトの初期化
              msg.initialize();
-
-             // addMessageのバグを回避するため、直接ツリーに追加して完了イベントを呼ぶ
              chatTab.appendChild(msg);
              EventSystem.trigger('MESSAGE_ADDED', { tabIdentifier: chatTab.identifier, messageIdentifier: msg.identifier });
           }
        }, 50); 
     }
-    // ▲▲▲ 新規追加ここまで ▲▲▲
 
     this.text = '';
-
-    
+    this.previousWritingLength = this.text.length;
+    this.kickCalcFitHeight();
   }
-  // sendChat(event: Partial<KeyboardEvent>) {
-  //   if (event) event.preventDefault();
 
-  //   if (!this.text.length) return;
-  //   if (event && event.keyCode !== 13) return;
-
-  //   if (!this.sendFrom.length) this.sendFrom = this.myPeer.identifier;
-
-    
-  //   // ーーーここを変更（colorとposを追加）ーーー
-  //   this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo, color: this.chatColor, pos: this.tachiePos });
-  //   // ーーーここまで変更ーーー
-  //   //this.chat.emit({ text: this.text, gameType: this.gameType, sendFrom: this.sendFrom, sendTo: this.sendTo });
-
-  //   this.text = '';
-  //   this.previousWritingLength = this.text.length;
-  //   let textArea: HTMLTextAreaElement = this.textAreaElementRef.nativeElement;
-  //   textArea.value = '';
-  //   this.calcFitHeight();
-  // }
+  kickCalcFitHeight() {
+    if (this.calcFitHeightInterval == null) {
+      this.calcFitHeightInterval = setTimeout(() => {
+        this.calcFitHeightInterval = null;
+        this.calcFitHeight();
+      }, 0)
+    }
+  }
 
   calcFitHeight() {
     let textArea: HTMLTextAreaElement = this.textAreaElementRef.nativeElement;
@@ -476,16 +369,19 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   }
 
   loadDiceBot(gameType: string) {
-    console.log('onChangeGameType ready');
-    DiceBot.getHelpMessage(gameType).then(help => {
-      console.log('onChangeGameType done\n' + help);
-    });
+    DiceBot.getHelpMessage(gameType).then(help => { });
+  }
+
+  isGameTypeInList(): boolean{
+    for( let diceBotInfo of this.diceBotInfos ){
+      if( diceBotInfo.id === this.gameType ){ return true ;}
+    }
+    return false;
   }
 
   showDicebotHelp() {
     DiceBot.getHelpMessage(this.gameType).then(help => {
       this.gameHelp = help;
-
       let gameName: string = 'ダイスボット';
       for (let diceBotInfo of DiceBot.diceBotInfos) {
         if (diceBotInfo.id === this.gameType) {
@@ -498,56 +394,14 @@ export class ChatInputComponent implements OnInit, OnDestroy {
       let option: PanelOption = { left: coordinate.x, top: coordinate.y, width: 600, height: 500 };
       let textView = this.panelService.open(TextViewComponent, option);
       textView.title = gameName;
-      textView.text =
-        '【ダイスボット】チャットにダイス用の文字を入力するとダイスロールが可能\n'
-        + '入力例）２ｄ６＋１　攻撃！\n'
-        + '出力例）2d6+1　攻撃！\n'
-        + '　　　　  diceBot: (2d6) → 7\n'
-        + '上記のようにダイス文字の後ろに空白を入れて発言する事も可能。\n'
-        + '以下、使用例\n'
-        + '　3D6+1>=9 ：3d6+1で目標値9以上かの判定\n'
-        + '　1D100<=50 ：D100で50％目標の下方ロールの例\n'
-        + '　3U6[5] ：3d6のダイス目が5以上の場合に振り足しして合計する(上方無限)\n'
-        + '　3B6 ：3d6のダイス目をバラバラのまま出力する（合計しない）\n'
-        + '　10B6>=4 ：10d6を振り4以上のダイス目の個数を数える\n'
-        + '　2R6[>3]>=5 ：2D6のダイス目が3より大きい場合に振り足して、5以上のダイス目の個数を数える\n'
-        + '　(8/2)D(4+6)<=(5*3)：個数・ダイス・達成値には四則演算も使用可能\n'
-        + '　c(10-4*3/2+2)：c(計算式）で計算だけの実行も可能\n'
-        + '　choice[a,b,c]：列挙した要素から一つを選択表示。ランダム攻撃対象決定などに\n'
-        + '　S3d6 ： 各コマンドの先頭に「S」を付けると他人結果の見えないシークレットロール\n'
-        + '　3d6/2 ： ダイス出目を割り算（端数処理はゲームシステム依存）。切り上げは /2C、四捨五入は /2R、切り捨ては /2F\n'
-        + '　D66 ： D66ダイス。順序はゲームに依存。D66N：そのまま、D66A：昇順、D66D：降順\n'
-        + '\n'
-        + '詳細は下記URLのコマンドガイドを参照\n'
-        + 'https://docs.bcdice.org/\n'
-        + '===================================\n'
-        + this.gameHelp;
+      textView.text = '【ダイスボット】チャットにダイス用の文字を入力するとダイスロールが可能\n' + this.gameHelp;
     });
   }
 
-  private allowsChat(gameCharacter: GameCharacter): boolean {
-
-    // ▼▼▼ 修正：「発言をしない」フラグのチェック（リリィ互換版） ▼▼▼
+private allowsChat(gameCharacter: GameCharacter): boolean {
     if (gameCharacter) {
-      const isDisable = gameCharacter.getAttribute('nonTalkFlag');
-      if (isDisable === 'true') {
-        return false; 
-      }
+      if (gameCharacter.nonTalkFlag) return false; 
     }
-    // ▲▲▲ 修正ここまで ▲▲▲
-// ▼▼▼ 新規追加：「発言をしない」フラグのチェック ▼▼▼
-    // if (gameCharacter.detailDataElement) {
-    //   let root = gameCharacter.detailDataElement.getFirstElementByName('システム設定');
-    //   if (root) {
-    //     let el = root.getFirstElementByName('disableChat');
-    //     // フラグが true なら発言不可（リストに表示しない）として弾く
-    //     if (el && el.value === 'true') {
-    //       return false; 
-    //     }
-    //   }
-    // }
-    // ▲▲▲ 新規追加ここまで ▲▲▲
-
     switch (gameCharacter.location.name) {
       case 'table':
       case this.myPeer.peerId:
@@ -564,34 +418,20 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     }
   }
 
-// ▼▼▼ 新規追加：{HP^} などの最大値参照を展開するメソッド ▼▼▼
   private replaceMaxValueReferences(text: string, character: GameCharacter): string {
     if (!text || !character) return text;
-    
-    // 正規表現で {属性名^} を探す（例：{HP^} なら attrName に "HP" が入る）
     return text.replace(/\{([^}]+)\^\}/g, (match, attrName) => {
       let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
                       character.commonDataElement?.getFirstElementByName(attrName);
-                      
       if (targetElm) {
-        // リソース型（最大値を持つデータ）かどうかを判定
         const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
-        if (isResource && targetElm.value != null) {
-          // 最大値を文字列として返す（置換する）
-          return targetElm.value.toString();
-        }
+        if (isResource && targetElm.value != null) return targetElm.value.toString();
       }
-      // 見つからなかった場合や、最大値を持たないデータの場合は元の文字列をそのまま残す
       return match;
     });
   }
-  // ▲▲▲ 新規追加ここまで ▲▲▲
 
-  // ▼▼▼ 変更：ステータス変更コマンドの高度な解析・適用メソッド（超高機能版） ▼▼▼
-// ▼▼▼ 変更：ステータス変更コマンドの高度な解析・適用メソッド（精密解析版） ▼▼▼
-// ▼▼▼ 変更：ステータス変更コマンドの高度な解析・適用メソッド（フラグ順不同対応版） ▼▼▼
   private applyStatusChanges(text: string, character: GameCharacter): string {
-    // 【修正】末尾のオプションフラグを (L?)(Z?) から ([LZ]*) に変更し、順不同で受け入れる
     const regex = /:([^\s:+\-*/=^]+)(\^?)([+\-*/=])([0-9dD()+\-*/]+)([LZ]*)/g;
     let match;
     let isUpdated = false;
@@ -602,8 +442,6 @@ export class ChatInputComponent implements OnInit, OnDestroy {
       const isMax = match[2] === '^';
       const operator = match[3];
       const exprStr = match[4];
-      
-      // 【修正】取得したフラグ文字列の中に 'L' や 'Z' が含まれているかを判定する
       const flags = match[5] || '';
       const flagL = flags.includes('L');
       const flagZ = flags.includes('Z');
@@ -616,7 +454,6 @@ export class ChatInputComponent implements OnInit, OnDestroy {
         const currentVal = (isResource && !isMax) ? targetElm.currentValue : targetElm.value;
         const currentNum = Number(currentVal);
 
-        // 【大改修ポイント1】数式内のダイス(d/D)を個別にロールし、"合計[出目]"の形式に置換する
         let displayExpr = exprStr.replace(/(\d*)[dD](\d*)/g, (m, countStr, faceStr) => {
           let count = countStr === '' ? 1 : parseInt(countStr);
           let faces = faceStr === '' ? 6 : parseInt(faceStr);
@@ -630,29 +467,19 @@ export class ChatInputComponent implements OnInit, OnDestroy {
           return `${sum}[${localDiceResults.join(',')}]`;
         });
 
-        // 計算用の純粋な数式（表示用の文字列から [出目] の部分だけを取り除く）
         let evalExpr = displayExpr.replace(/\[.*?\]/g, '');
-
         let newVal = currentNum;
         let isCalculated = false;
 
-        // 【大改修ポイント2】現在の値(currentNum)を含めた1つの数式として安全に評価する
         if (operator === '=') {
           try {
              let evaluated = new Function('"use strict";return (' + evalExpr + ')')();
-             if (!Number.isNaN(evaluated)) {
-                newVal = evaluated;
-                isCalculated = true;
-             }
+             if (!Number.isNaN(evaluated)) { newVal = evaluated; isCalculated = true; }
           } catch(e) { }
         } else {
           try {
-             // currentNum と 演算子 と 評価式 をそのまま繋げて計算する（例: 0 - 7 + 10）
              let evaluated = new Function('"use strict";return (' + currentNum + operator + evalExpr + ')')();
-             if (!Number.isNaN(evaluated)) {
-                newVal = evaluated;
-                isCalculated = true;
-             }
+             if (!Number.isNaN(evaluated)) { newVal = evaluated; isCalculated = true; }
           } catch(e) { }
         }
 
@@ -660,54 +487,32 @@ export class ChatInputComponent implements OnInit, OnDestroy {
           let delta = newVal - currentNum;
           let limitText = "";
 
-          // 【機能3】Zフラグ（変更量の逆転防止を、実際の変動量deltaを元に正確に判定）
           if (flagZ) {
-             if (operator === '+' && delta < 0) {
-               newVal = currentNum;
-               limitText += "(0制限)";
-             }
-             if (operator === '-' && delta > 0) {
-               newVal = currentNum;
-               limitText += "(0制限)";
-             }
+             if (operator === '+' && delta < 0) { newVal = currentNum; limitText += "(0制限)"; }
+             if (operator === '-' && delta > 0) { newVal = currentNum; limitText += "(0制限)"; }
           }
 
-          // 【機能4】Lフラグ（0〜最大値の範囲に収める）
           if (flagL && isResource && !isMax) {
              let maxNum = Number(targetElm.value);
              if (!Number.isNaN(maxNum)) {
-                if (newVal > maxNum) {
-                   newVal = maxNum;
-                   limitText += "(最大)";
-                } else if (newVal < 0) {
-                   newVal = 0;
-                   limitText += "(最小)";
-                }
+                if (newVal > maxNum) { newVal = maxNum; limitText += "(最大)"; } 
+                else if (newVal < 0) { newVal = 0; limitText += "(最小)"; }
              }
           }
 
-          // データの保存
-          if (isResource && !isMax) {
-            targetElm.currentValue = newVal;
-          } else {
-            targetElm.value = newVal;
-          }
+          if (isResource && !isMax) targetElm.currentValue = newVal;
+          else targetElm.value = newVal;
+          
           isUpdated = true;
 
-          // 【大改修ポイント3】構築した displayExpr をそのままメッセージに組み込む
           let attrLabel = isMax ? `${attrName}(最大値)` : attrName;
-          if (operator === '=') {
-             results.push(`${attrLabel}:${currentNum}＞${newVal}${limitText}`);
-          } else {
-             results.push(`${attrLabel}:${currentNum}${operator}${displayExpr}＞${newVal}${limitText}`);
-          }
+          if (operator === '=') results.push(`${attrLabel}:${currentNum}＞${newVal}${limitText}`);
+          else results.push(`${attrLabel}:${currentNum}${operator}${displayExpr}＞${newVal}${limitText}`);
+          
         } else if (operator === '=') {
-          // 数式として計算できなかった場合は、今まで通り文字列として代入する（例：:メモ=睡眠中）
-          if (isResource && !isMax) {
-            targetElm.currentValue = exprStr;
-          } else {
-            targetElm.value = exprStr;
-          }
+          if (isResource && !isMax) targetElm.currentValue = exprStr;
+          else targetElm.value = exprStr;
+          
           isUpdated = true;
           let attrLabel = isMax ? `${attrName}(最大値)` : attrName;
           results.push(`${attrLabel}:${currentVal}＞${exprStr}`);
@@ -715,75 +520,7 @@ export class ChatInputComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (isUpdated) {
-      character.update();
-    }
-    
+    if (isUpdated) character.update();
     return results.join('  ');
   }
-  // ▲▲▲ 変更ここまで ▲▲▲
-  // ▲▲▲ 変更ここまで ▲▲▲
-  // ▼▼▼ 新規追加：ステータス変更コマンドの解析・適用メソッド ▼▼▼
-// ▼▼▼ 修正：ステータス変更コマンドの解析・適用メソッド（結果文字列を返すように変更） ▼▼▼
-  // private applyStatusChanges(text: string, character: GameCharacter): string {
-  //   const regex = /:([^\s:+\-*/=]+)([+\-*/=])([^\s:]+)/g;
-  //   let match;
-  //   let isUpdated = false;
-  //   let results: string[] = []; // 結果を貯める配列
-
-  //   while ((match = regex.exec(text)) !== null) {
-  //     const attrName = match[1];
-  //     const operator = match[2];
-  //     const valueStr = match[3];
-
-  //     let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
-  //                     character.commonDataElement?.getFirstElementByName(attrName);
-
-  //     if (targetElm) {
-  //       const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
-  //       const currentVal = isResource ? targetElm.currentValue : targetElm.value;
-
-  //       const currentNum = Number(currentVal);
-  //       const valNum = Number(valueStr);
-
-  //       if (!Number.isNaN(currentNum) && !Number.isNaN(valNum)) {
-  //         let newVal = currentNum;
-  //         switch (operator) {
-  //           case '+': newVal += valNum; break;
-  //           case '-': newVal -= valNum; break;
-  //           case '*': newVal *= valNum; break;
-  //           case '/': newVal /= valNum; break;
-  //           case '=': newVal = valNum; break;
-  //         }
-
-  //         if (isResource) {
-  //           targetElm.currentValue = newVal;
-  //         } else {
-  //           targetElm.value = newVal;
-  //         }
-  //         isUpdated = true;
-  //         // 結果テキストを作成（例: HP:200+5>205）
-  //         results.push(`${attrName}:${currentNum}${operator}${valNum}>${newVal}`);
-  //       } 
-  //       else if (operator === '=') {
-  //         if (isResource) {
-  //           targetElm.currentValue = valueStr;
-  //         } else {
-  //           targetElm.value = valueStr;
-  //         }
-  //         isUpdated = true;
-  //         // 文字列の代入結果（例: メモ:通常>睡眠中）
-  //         results.push(`${attrName}:${currentVal}>${valueStr}`);
-  //       }
-  //     }
-  //   }
-
-  //   if (isUpdated) {
-  //     character.update();
-  //   }
-    
-  //   // 複数の結果がある場合はスペース2つで区切って1つの文字列にする
-  //   return results.join('  ');
-  // }
-  // ▲▲▲ 修正ここまで ▲▲▲
 }

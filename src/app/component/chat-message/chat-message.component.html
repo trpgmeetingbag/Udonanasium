@@ -1,36 +1,35 @@
-<div class="container" [class.simple-mode]="chatSettingsService.isSimpleMode">
-    <div class="message" [ngClass]="{
-  'direct-message': (!chatMessage.isSystem && (chatMessage.isDirect || chatMessage.isSecret)), 
-  'system-message': chatMessage.isSystem, 
-  'dicebot-message': chatMessage.isDicebot
-}" [@flyInOut]="animeState">
+<div class="container" [class.simple-mode]="chatSimpleDispFlag">
+  <div class="message" [ngClass]="{
+    'direct-message': (!chatMessage.isSystem && (chatMessage.isDirect || chatMessage.isSecret)), 
+    'system-message': chatMessage.isSystem, 
+    'dicebot-message': chatMessage.isDicebot
+  }" [@flyInOut]="animeState">
     
-    <div class="image" *ngIf="!chatSettingsService.isSimpleMode">
+    <div class="image" *ngIf="!chatSimpleDispFlag">
       <img *ngIf="chatMessage.imageUrl" [src]="chatMessage.imageUrl | safe: 'resourceUrl'" alt="立ち絵" />
       <img *ngIf="!chatMessage.imageUrl && 0 < imageFile?.url?.length" [src]="imageFile?.url | safe: 'resourceUrl'" alt="アイコン" />
     </div>
 
-    <div class="body" [class.simple-body]="chatSettingsService.isSimpleMode">
+    <div class="body" [class.simple-body]="chatSimpleDispFlag">
       <div class="title">
-        <span class="msg-name" [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.name}}</span>
+        <span class="msg-name" [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.name}}<ng-container *ngIf="chatSimpleDispFlag">：</ng-container></span>
         
         <span class='tip msg-from' 
-              *ngIf="!chatSettingsService.isSimpleMode || chatSettingsService.showIdInSimpleMode"
+              *ngIf="!chatSimpleDispFlag || simpleDispFlagUserId"
               [style.color]="chatMessage.color ? chatMessage.color : null">
               {{chatMessage.from}}
         </span>
         
-        <ng-container *ngIf="!chatSettingsService.isSimpleMode; else simpleTime">
+        <ng-container *ngIf="!chatSimpleDispFlag; else simpleTime">
           <span class='tip msg-timestamp' [style.color]="chatMessage.color ? chatMessage.color : null">{{chatMessage.timestamp | date:'y/M/d H:mm'}}</span>
         </ng-container>
         <ng-template #simpleTime>
           <span class='tip msg-timestamp' 
-                *ngIf="chatSettingsService.showTimeInSimpleMode"
+                *ngIf="simpleDispFlagTime"
                 [style.color]="chatMessage.color ? chatMessage.color : null">
                 {{chatMessage.timestamp | date:'H:mm'}}
           </span>
         </ng-template>
-
       </div>
       
       <div class="text msg-text" [style.color]="chatMessage.color ? chatMessage.color : null">
@@ -40,8 +39,16 @@
   </div>
 </div>
 
+  <!-- リリィ版のルビ対応表示に変更 -->
+<!-- <ng-template #visible>
+  <span [innerHTML]="escapeHtmlAndRuby(chatMessage.text) | linky:{stripPrefix: false} | safe"></span>
+  <span *ngIf="chatMessage.isSendFromSelf" class="edit-btn" (click)="editMessage()">[編集]</span>
+  <button *ngIf="chatMessage.isSecret" (click)="discloseMessage()">結果を公開</button>
+</ng-template> -->
+
+<!-- 修正後（ | linky:{stripPrefix: false} を削除し、安全のために safe: 'html' を指定 ） -->
 <ng-template #visible>
-  <span>{{chatMessage.text}}</span>
+  <span [innerHTML]="escapeHtmlAndRuby(chatMessage.text) | safe: 'html'"></span>
   <span *ngIf="chatMessage.isSendFromSelf" class="edit-btn" (click)="editMessage()">[編集]</span>
   <button *ngIf="chatMessage.isSecret" (click)="discloseMessage()">結果を公開</button>
 </ng-template>

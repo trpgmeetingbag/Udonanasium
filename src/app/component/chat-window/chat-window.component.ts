@@ -9,10 +9,8 @@ import { ChatMessageService } from 'service/chat-message.service';
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
 
-// ▼▼▼ 追加：イベント購読とサービス ▼▼▼
 import { Subscription } from 'rxjs';
-import { ChatSettingsService } from '../../service/chat-settings.service'; // パスは環境に合わせて調整してください
-// ▲▲▲ 追加ここまで ▲▲▲
+import { ChatSettingsService } from '../../service/chat-settings.service';
 
 @Component({
   selector: 'chat-window',
@@ -36,21 +34,35 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  // START: リリィ準拠 タブの左右切り替え
+  chatTabSwitchRelative(direction: number) {
+    let chatTabs = this.chatMessageService.chatTabs;
+    let index = chatTabs.findIndex((elm) => elm.identifier == this.chatTabidentifier);
+    if (index < 0) { return; }
+
+    let nextIndex: number;
+    if (index == chatTabs.length - 1 && direction == 1) {
+      nextIndex = 0;
+    } else if (index == 0 && direction == -1) {
+      nextIndex = chatTabs.length - 1;
+    } else {
+      nextIndex = index + direction;
+    }
+    this.chatTabidentifier = chatTabs[nextIndex].identifier;
+  }
+  // END
+
   get chatTab(): ChatTab { return ObjectStore.instance.get<ChatTab>(this.chatTabidentifier); }
   isAutoScroll: boolean = true;
   scrollToBottomTimer: NodeJS.Timeout = null;
 
-  // ▼▼▼ 追加：設定監視用の変数 ▼▼▼
   private settingsSub: Subscription;
-  // ▲▲▲ 追加ここまで ▲▲▲
 
   constructor(
     public chatMessageService: ChatMessageService,
     private panelService: PanelService,
     private pointerDeviceService: PointerDeviceService,
-    // ▼▼▼ 追加：設定サービスを注入 ▼▼▼
     public chatSettingsService: ChatSettingsService
-    // ▲▲▲ 追加ここまで ▲▲▲
   ) { }
 
   ngOnInit() {
@@ -67,29 +79,15 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
           this.checkAutoScroll();
         }
         if (this.isAutoScroll && this.chatTab) this.chatTab.markForRead();
-// ▼▼▼ 修正：微小なスクロールで再計算を誘発 ▼▼▼
-          if (this.chatSettingsService.isSimpleMode && this.panelService.scrollablePanel) {
-            setTimeout(() => {
-              // 1ピクセル上にスクロールして、すぐ戻す
-              this.panelService.scrollablePanel.scrollBy(0, -1);
-              setTimeout(() => this.panelService.scrollablePanel.scrollBy(0, 1), 10);
-            }, 50);
-          }
-          // ▲▲▲ 修正ここまで ▲▲▲
       });
     Promise.resolve().then(() => this.updatePanelTitle());
 
-// ▼▼▼ 修正：設定切り替え時も微小なスクロールで再計算を誘発 ▼▼▼
+    // 設定変更時のスクロール処理（強引なscrollByを廃止し、正規の関数を呼ぶだけにする）
     this.settingsSub = this.chatSettingsService.settingsChanged.subscribe(() => {
       setTimeout(() => {
         this.scrollToBottom(true);
-        if (this.panelService.scrollablePanel) {
-          this.panelService.scrollablePanel.scrollBy(0, -1);
-          setTimeout(() => this.panelService.scrollablePanel.scrollBy(0, 1), 10);
-        }
       }, 50);
     });
-    // ▲▲▲ 修正ここまで ▲▲▲
   }
 
   ngAfterViewInit() {
@@ -98,14 +96,12 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     EventSystem.unregister(this);
-    // ▼▼▼ 追加：ウィンドウを閉じた際に監視を解除する ▼▼▼
     if (this.settingsSub) {
       this.settingsSub.unsubscribe();
     }
-    // ▲▲▲ 追加ここまで ▲▲▲
-  } 
+  }
 
-  // @TODO やり方はもう少し考えた方がいいい
+  // START: リリィ準拠 スクロール制御
   scrollToBottom(isForce: boolean = false) {
     if (isForce) this.isAutoScroll = true;
     if (!this.isAutoScroll) return;
@@ -122,7 +118,6 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
     }, 0);
   }
 
-  // @TODO
   checkAutoScroll() {
     if (!this.panelService.scrollablePanel) return;
     let top = this.panelService.scrollablePanel.scrollHeight - this.panelService.scrollablePanel.clientHeight;
@@ -132,6 +127,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
       this.isAutoScroll = false;
     }
   }
+  // END
 
   updatePanelTitle() {
     if (this.chatTab) {
@@ -147,33 +143,17 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewInit {
 
   showTabSetting() {
     let coordinate = this.pointerDeviceService.pointers[0];
-    //チャットタブ設定の高さを少し変更
-    //let option: PanelOption = { left: coordinate.x - 250, top: coordinate.y - 175, width: 500, height: 350 };
-    let option: PanelOption = { left: coordinate.x - 250, top: coordinate.y - 175, width: 500, height: 390 };
-    
+    let option: PanelOption = { left: coordinate.x - 250, top: coordinate.y - 175, width: 500, height: 380 }; // サイズをリリィに合わせる
     let component = this.panelService.open<ChatTabSettingComponent>(ChatTabSettingComponent, option);
     component.selectedTab = this.chatTab;
   }
 
-  // ーーーまるごと書き換えーーー
-sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }) {
+  // 現在のプロジェクト仕様に合わせた sendChat
+  sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }) {
     if (this.chatTab) {
       this.chatMessageService.sendMessage(this.chatTab, value.text, value.gameType, value.sendFrom, value.sendTo, value.color, value.tachieId);
     }
   }
-  //古いコード
-  // sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string, color: string, pos: number }) {
-  //   if (this.chatTab) {
-  //     // サービス側の sendMessage に、color と pos の情報も渡す
-  //     this.chatMessageService.sendMessage(this.chatTab, value.text, value.gameType, value.sendFrom, value.sendTo, value.color, value.pos);
-  //   }
-  // }
-  // ーーーまるごと書き換えここまでーーー
-  // sendChat(value: { text: string, gameType: string, sendFrom: string, sendTo: string }) {
-  //   if (this.chatTab) {
-  //     this.chatMessageService.sendMessage(this.chatTab, value.text, value.gameType, value.sendFrom, value.sendTo);
-  //   }
-  // }
 
   trackByChatTab(index: number, chatTab: ChatTab) {
     return chatTab.identifier;

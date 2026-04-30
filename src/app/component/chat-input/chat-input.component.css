@@ -5,14 +5,11 @@
 .table {
   box-sizing: border-box;
   padding : 5px;
-  /*position : fixed;*/
-  /*bottom : 0;*/
   display: table;
-  /*width: calc(100% - 30px);*/
   width: 100%;
 }
 
-.table .table-cell {
+.table-cell {
   display: table-cell;
 }
 
@@ -26,7 +23,7 @@
   text-align: center;
 }
 
-.image{
+.image {
   width: 100%;
   height: 100%;
   vertical-align: bottom;
@@ -63,4 +60,22 @@
 .direct-message {
   background-color: #555;
   color: #CCC;
+}
+
+/* 拡張UI用のレイアウト幅設定 */
+.color-setting-tag {
+  width: 6em;
+  max-width: 6em;
+  min-width: 6em;
+}
+
+.tachie-tag {
+  vertical-align: bottom;
+  overflow: hidden;
+  max-width: 15em;
+  white-space: nowrap;
+}
+
+.is-caret {
+  caret-color: rgba(0,0,0,0.95);
 }

@@ -113,9 +113,8 @@ getGameObjects(inventoryType: string): TabletopObject[] {
     if (inventoryType === 'table') {
       return objects.filter(obj => {
         if (obj.aliasName === 'character') {
-          const isHidden = obj.getAttribute('hideInventory');
-          // ▼▼▼ 修正 ▼▼▼
-          if (isHidden === 'true') {
+          // Lily互換：GameCharacter クラスのプロパティを直接参照
+          if ((obj as GameCharacter).hideInventory) {
             return false;
           }
         }
@@ -123,30 +122,6 @@ getGameObjects(inventoryType: string): TabletopObject[] {
       });
     }
     
-    return objects;
-  // --- END ---
-  // getGameObjects(inventoryType: string): TabletopObject[] {
-  //   let objects = this.getInventory(inventoryType).tabletopObjects;
-    
-  //   // テーブルタブの場合のみ、非表示フラグがONのコマを除外する
-  //   if (inventoryType === 'table') {
-  //     return objects.filter(obj => {
-  //       // キャラクターコマかつ、詳細データを持っているか
-  //       if (obj.aliasName === 'character' && obj.detailDataElement) {
-  //         let root = obj.detailDataElement.getFirstElementByName('システム設定');
-  //         if (root) {
-  //           let el = root.getFirstElementByName('hideInTableInventory');
-  //           // フラグがtrueなら、一覧（配列）から除外（falseを返す）
-  //           if (el && el.value === 'true') {
-  //             return false;
-  //           }
-  //         }
-  //       }
-  //       return true; // それ以外のオブジェクトやフラグOFFのものは表示
-  //     });
-  //   }
-    
-    // テーブルタブ以外（個人、共有、墓場など）はそのまま全て返す
     return objects;
   }
   // --- END ---

@@ -1,9 +1,6 @@
-// import { Injectable } from '@angular/core';
-// --- START: NgZone のインポート追加 ---
 import { Injectable, NgZone } from '@angular/core';
+import GameSystemClass from 'bcdice/lib/game_system';
 import { EventSystem } from '@udonarium/core/system';
-// --- END ---
-
 
 import { ChatMessage, ChatMessageContext } from '@udonarium/chat-message';
 import { ChatTab } from '@udonarium/chat-tab';
@@ -12,14 +9,12 @@ import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
 import { Network } from '@udonarium/core/system';
 import { GameCharacter } from '@udonarium/game-character';
 import { PeerCursor } from '@udonarium/peer-cursor';
+import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
+import { DataElement } from '@udonarium/data-element';
+import { DiceBot } from '@udonarium/dice-bot';
 
-// ▼▼▼ 新規追加：音響システム ▼▼▼
 import { PresetSound, SoundEffect } from '@udonarium/sound-effect';
-// ▲▲▲ 新規追加ここまで ▲▲▲
-
-// ▼▼▼ 追加：システム音量を取得するためのクラス ▼▼▼
 import { AudioPlayer } from '@udonarium/core/file-storage/audio-player';
-// ▲▲▲ 追加ここまで ▲▲▲
 
 const HOURS = 60 * 60 * 1000;
 
@@ -33,30 +28,18 @@ export class ChatMessageService {
     'https://worldtimeapi.org/api/ip',
   ];
 
-  gameType: string = '';
+  gameType: string = 'DiceBot';
 
-  // --- START: 重複排除用のプロパティを追加 ---
-  // 通知済みのPeerIDを記録しておくリスト
   private notifiedPeers: Set<string> = new Set();
-  // --- END ---
-
-  // --- START: 瞬断対策用のプロパティを追加 ---
-  // 修正：複数のタイマーを配列で保持できるように変更
   private disconnectTimers: Map<string, NodeJS.Timeout[]> = new Map();
-  // --- END ---
 
-// --- START: 入退室通知の初期化処理（NgZoneの注入） ---
   constructor(private ngZone: NgZone) {
     this.initializeSystemNotice();
 
-
-// ▼▼▼ 新規追加：全プレイヤーの画面で音を鳴らすためのイベント監視 ▼▼▼
-    
-    // 【ラグ対策】音声を事前に一度だけ読み込んでおく（ファイル名は適宜変更してください）
     const customChime = new Audio('./assets/sounds/nc96723.mp3');
-    customChime.volume = 0.5; // 音量
+    customChime.volume = 0.5;
 
-    let pendingChimeTimer: any = null; // ダイス判定待ち用のタイマー
+    let pendingChimeTimer: any = null;
 
     const soundObserver = {};
     EventSystem.register(soundObserver)
@@ -65,7 +48,6 @@ export class ChatMessageService {
         if (!msg) return;
         if (msg.timestamp < this.getTime() - 3000) return;
 
-        // ▼ 【大改修】ダイスボットの結果が到着した場合は、着信音をキャンセルする（二重音防止）
         if (msg.isDicebot) {
            if (pendingChimeTimer) {
               clearTimeout(pendingChimeTimer);
@@ -78,55 +60,38 @@ export class ChatMessageService {
         const isMacroCommand = /^:[^\s:+\-*/=^]+\^?[+\-*/=]/.test(text);
         const isMacroResult = /^[^\s:+\-*/=^]+(?:\(最大値\))?:.*＞/.test(text);
 
-        // 【機能1】システムからのメッセージの場合
         if (msg.tag === 'system' && msg.from === 'System') {
            if (isMacroResult) {
               if (/\[.*\]/.test(text)) {
                  SoundEffect.play(PresetSound.diceRoll1); 
               } else {
-                 // ▼▼▼ 修正：再生直前にシステム音量と同期させる ▼▼▼
                  customChime.volume = AudioPlayer.volume;
                  customChime.currentTime = 0;
                  customChime.play().catch(e => {}); 
-                 // ▲▲▲ 修正ここまで ▲▲▲
-                //  customChime.currentTime = 0; // 音声の頭出し
-                //  customChime.play().catch(e => {}); 
               }
            }
         }
-        // 【機能2】プレイヤーからの通常発言の場合
         else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
            if (!isMacroCommand) {
               if (pendingChimeTimer) {
                  clearTimeout(pendingChimeTimer);
               }
-              // ▼ 【大改修】50ミリ秒だけ待機する（この直後にダイス結果が来たら着信音はキャンセルされる）
               pendingChimeTimer = setTimeout(() => {
-                 // ▼▼▼ 修正：再生直前にシステム音量と同期させる ▼▼▼
                  customChime.volume = AudioPlayer.volume;
                  customChime.currentTime = 0; 
                  customChime.play().catch(e => {}); 
-                 // ▲▲▲ 修正ここまで ▲▲▲
-
-                //  customChime.currentTime = 0; // 音声の頭出し
-                //  customChime.play().catch(e => {}); 
                  pendingChimeTimer = null;
               }, 50); 
            }
         }
       });
-    // ▲▲▲ 新規追加ここまで ▲▲▲
-    
   }
-  // --- END ---
 
-  // --- START: 入退室通知（2段階アラート・瞬断キャンセラー搭載版） ---
   private initializeSystemNotice() {
     EventSystem.register(this)
       .on('CONNECT_PEER', event => {
         const peerId = event.data.peerId;
 
-        // 復帰時：30秒警告や60秒退室のタイマーが動いていれば、すべてキャンセルして静かに復帰させる
         if (this.disconnectTimers.has(peerId)) {
           const timers = this.disconnectTimers.get(peerId);
           timers.forEach(t => clearTimeout(t));
@@ -151,7 +116,6 @@ export class ChatMessageService {
       .on('DISCONNECT_PEER', event => {
         const peerId = event.data.peerId;
         
-        // 念のため既存のタイマーがあれば掃除
         if (this.disconnectTimers.has(peerId)) {
           this.disconnectTimers.get(peerId).forEach(t => clearTimeout(t));
         }
@@ -162,37 +126,29 @@ export class ChatMessageService {
         const userId = peerCursor ? peerCursor.userId : peerId.substring(0, 8);
         const name = peerCursor ? peerCursor.name : 'プレイヤー';
 
-        // ① 30秒後の「通信障害警告」タイマー
         const warningTimer = setTimeout(() => {
           this.ngZone.run(() => {
             this.sendSystemNotice(`${userId}[${name}] からあなたへの接続確認信号が30秒以上受信できません。通信障害の可能性があります。`);
           });
-        }, 30000); // 30秒
+        }, 30000);
 
-        // ② 60秒後の「退室確定」タイマー
         const logoutTimer = setTimeout(() => {
           this.disconnectTimers.delete(peerId);
           if (this.notifiedPeers.has(peerId)) this.notifiedPeers.delete(peerId);
 
           this.ngZone.run(() => {
-            // 既存の退室メッセージ
             this.sendSystemNotice(`${userId}[${name}]がログアウトしました。`);
           });
-        }, 60000); // 60秒
+        }, 60000);
 
-        // 2つのタイマーをセットで保存
         this.disconnectTimers.set(peerId, [warningTimer, logoutTimer]);
       });
   }
-  // --- END ---
-// --- START: システムメッセージ送信処理（通知先タブ対応版） ---
+
   private sendSystemNotice(text: string) {
     if (this.chatTabs.length === 0) return;
 
-    // 1. 'systemNoticeTarget' 属性が 'true' になっているタブを探す
     let targetTab = this.chatTabs.find(tab => tab.getAttribute('systemNoticeTarget') === 'true');
-    
-    // 2. もし設定されているタブが一つもなければ、デフォルトで一番左のタブ（chatTabs[0]）を使用する
     if (!targetTab) {
       targetTab = this.chatTabs[0];
     }
@@ -217,7 +173,6 @@ export class ChatMessageService {
       }
     });
   }
-  // --- END ---
 
   get chatTabs(): ChatTab[] {
     return ChatTabList.instance.chatTabs;
@@ -244,14 +199,9 @@ export class ChatMessageService {
         let fixedTime = st + latency;
         this.timeOffset = fixedTime;
         this.performanceOffset = endTime;
-        console.log('latency: ' + latency + 'ms');
-        console.log('st: ' + st + '');
-        console.log('timeOffset: ' + this.timeOffset);
-        console.log('performanceOffset: ' + this.performanceOffset);
         this.setIntervalTimer();
       })
       .catch(error => {
-        console.warn('There has been a problem with your fetch operation: ', error.message);
         this.setIntervalTimer();
       });
     this.setIntervalTimer();
@@ -269,119 +219,130 @@ export class ChatMessageService {
     return Math.floor(this.timeOffset + (performance.now() - this.performanceOffset));
   }
 
+sendSystemMessageOnePlayer(chatTab: ChatTab, text: string, sendTo: string, color?: string): ChatMessage {
+    let _color = !color ? '#006633' : color;
+    let chatMessage: ChatMessageContext = {
+      from: this.findId(sendTo),
+      to: this.findId(sendTo),
+      name: 'システムメッセージ',
+      imageIdentifier: '',
+      timestamp: this.calcTimeStamp(chatTab),
+      tag: 'DiceBot to-pl-system-message',
+      text: text
+    };
+    let msg = chatTab.addMessage(chatMessage);
+    if (msg) msg.setAttribute('messColor', _color);
+    return msg;
+  }
 
-  // ーーーまるごと書き換えーーー
-sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
+sendSystemMessageLastSendCharactor(text: string){
+    const chatTabList = ObjectStore.instance.get<ChatTabList>('ChatTabList');
+    const sysTab = chatTabList.chatTabs[0]; // systemMessageTabがないため、一番左のタブで代用
+    const sendFrom = PeerCursor.myCursor.identifier;
+    this.sendMessage(sysTab, text, null, sendFrom, null, '#006633', '');
+  }
+
+  // START: リリィ互換の送信処理（引数を調整し、エラーを回避）
+// START: リリィ互換の送信処理（引数を調整し、エラーを回避）
+
+    sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string | null, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
+let gameTypeString = '';
+    if (gameSystem) {
+      if (typeof gameSystem === 'string') {
+        gameTypeString = gameSystem;
+      } else {
+        gameTypeString = (gameSystem as GameSystemClass).ID;
+      }
+    }
+
+    let _color = color || '#000000';
+    let chatMessageTag: string = gameTypeString ? gameTypeString : '';
+    
+    // chat-input側で選択された立ち絵ID（tachieId）があればそれを、なければデフォルト画像を取得
+    let finalImageIdentifier = tachieId || this.findImageIdentifier(sendFrom);
+
     let chatMessage: ChatMessageContext = {
       from: Network.peer.userId,
       to: this.findId(sendTo),
       name: this.makeMessageName(sendFrom, sendTo),
-      imageIdentifier: tachieId || this.findImageIdentifier(sendFrom), // 送られてきた立ち絵IDを適用
+      imageIdentifier: finalImageIdentifier,
       timestamp: this.calcTimeStamp(chatTab),
-      tag: gameType,
-      text: text,
+      tag: chatMessageTag,
+      text: text
     };
+
+    // 立ち絵置き換えとテキスト整形
+    let chkMessage = ' ' + text;
+    let matchesArray = chkMessage.match(/\s[@＠](\S+)\s*$/i);
+    if (matchesArray) {
+      const matchHide = matchesArray[1].match(/^[hHｈＨ][iIｉＩ][dDｄＤ][eEｅＥ]$/);
+      const matchNum = matchesArray[1].match(/(\d+)$/);
+
+      if (matchHide) {
+        chatMessage.imageIdentifier = '';
+        chatMessage.text = text.replace(/([@＠]\S+\s*)$/i, '');
+      } else if (matchNum) {
+        const num: number = parseInt(matchNum[1]);
+        const newIdentifier = this.findImageIdentifier(sendFrom, num);
+        if (newIdentifier) {
+          chatMessage.imageIdentifier = newIdentifier;
+          chatMessage.text = text.replace(/([@＠]\S+\s*)$/i, '');
+          let obj = ObjectStore.instance.get(sendFrom);
+          if (obj instanceof GameCharacter) {
+            obj.setAttribute('selectedTachieNum', matchNum[1]);
+          }
+        }
+      } else {
+        const tachieName = matchesArray[1];
+        const newIdentifier = this.findImageIdentifierName(sendFrom, tachieName);
+        if (newIdentifier) {
+          chatMessage.imageIdentifier = newIdentifier;
+          chatMessage.text = text.replace(/([@＠]\S+\s*)$/i, '');
+          let obj = ObjectStore.instance.get(sendFrom);
+          if (obj instanceof GameCharacter) {
+            obj.setAttribute('selectedTachieNum', this._ImageIndex.toString());
+          }
+        }
+      }
+    }
 
     let message = chatTab.addMessage(chatMessage);
     if (message) {
-      message.setAttribute('messColor', color);
+      message.setAttribute('messColor', _color);
       message.setAttribute('sendFrom', sendFrom);
-      // POSは後のフェーズでキャラクターデータから直接読み取るため、ここでは一旦0固定で保存します
-      //message.setAttribute('imagePos', '0');
+      message.setAttribute('imagePos', this.findImagePos(sendFrom).toString());
+    }
 
-      // ーーーここから追加（立ち絵の表示更新ロジック）ーーー
+    // 立ち絵表示用（チャットタブ上部の更新）
+    if (message) {
       let charObj = ObjectStore.instance.get(sendFrom);
       if (charObj instanceof GameCharacter) {
         let pos = 0;
-        
-// --- START: スライダーの選択（tachieId）を最優先で反映する処理 ---
-// --- START: POS取得処理の修正（リリィ互換の新しい階層に合わせる） ---
-        // 1. POSの取得（シートの 立ち絵位置 -> POS から取得）
         let tachieRoot = charObj.detailDataElement ? charObj.detailDataElement.getFirstElementByName('立ち絵位置') : null;
         if (tachieRoot) {
           let posElement = tachieRoot.getFirstElementByName('POS');
           if (posElement) {
-            // numberResourceのため、currentValue（現在値）を優先的に取得します
             let posValue = posElement.currentValue !== undefined ? posElement.currentValue : posElement.value;
             pos = parseInt(posValue.toString(), 10);
           }
         }
         if (isNaN(pos)) pos = 0;
 
-        // 2. 画像IDの取得（チャット入力欄のスライダーから渡された tachieId を最優先）
-        let imageIdentifier = tachieId;
-        
-        // スライダーからの指定がない場合は、現在のコマ画像を使用
-        if (!imageIdentifier) {
-          let imageElement = charObj.imageDataElement ? charObj.imageDataElement.getFirstElementByName('imageIdentifier') : null;
-          if (imageElement) {
-             imageIdentifier = imageElement.value ? imageElement.value.toString() : '';
-          } else if (charObj.imageFile) {
-             imageIdentifier = charObj.imageFile.identifier;
-          }
-        }
-// --- END ---
-
-        // 3. ChatTabの立ち絵スロットを上書き更新
-        if (imageIdentifier && pos >= 0 && pos < 12) {
-          // 古いセーブデータ対策（配列が存在しない場合は初期化）
+        if (chatMessage.imageIdentifier && pos >= 0 && pos < 12) {
           if (!chatTab.imageIdentifier) {
             chatTab.imageIdentifier = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '];
           }
-          // 配列を新しく作り直してセットすることで、ユドナリウムの同期システムに変更を検知させます
           let newIdentifiers = chatTab.imageIdentifier.slice();
-          newIdentifiers[pos] = imageIdentifier;
+          newIdentifiers[pos] = chatMessage.imageIdentifier;
           chatTab.imageIdentifier = newIdentifiers; 
-
-          // --- START: 最後に更新された立ち絵のPOSを同期データとして記録する ---
           chatTab.setAttribute('activeTachiePos', pos.toString());
-          // --- END ---
-          
         }
       }
-      // ーーー追加ここまでーーー
-
     }
+
     return message;
   }
-  //古いコード
-  // sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, sendTo?: string, color: string = '#000000', pos: number = 0): ChatMessage {
-  //   let chatMessage: ChatMessageContext = {
-  //     from: Network.peer.userId,
-  //     to: this.findId(sendTo),
-  //     name: this.makeMessageName(sendFrom, sendTo),
-  //     imageIdentifier: this.findImageIdentifier(sendFrom),
-  //     timestamp: this.calcTimeStamp(chatTab),
-  //     tag: gameType,
-  //     text: text,
-  //   };
-
-  //   // 一旦メッセージを作成
-  //   let message = chatTab.addMessage(chatMessage);
-    
-  //   // 生成されたメッセージオブジェクトに、カスタム属性（XMLの要素）として色やPOSを書き込む
-  //   if (message) {
-  //     message.setAttribute('messColor', color);
-  //     message.setAttribute('imagePos', pos.toString());
-  //     message.setAttribute('sendFrom', sendFrom);
-  //   }
-
-  //   return message;
-  // }
-  // ーーーまるごと書き換えここまでーーー
-  // sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, sendTo?: string): ChatMessage {
-  //   let chatMessage: ChatMessageContext = {
-  //     from: Network.peer.userId,
-  //     to: this.findId(sendTo),
-  //     name: this.makeMessageName(sendFrom, sendTo),
-  //     imageIdentifier: this.findImageIdentifier(sendFrom),
-  //     timestamp: this.calcTimeStamp(chatTab),
-  //     tag: gameType,
-  //     text: text,
-  //   };
-
-  //   return chatTab.addMessage(chatMessage);
-  // }
+  // END
 
   private findId(identifier: string): string {
     let object = ObjectStore.instance.get(identifier);
@@ -406,19 +367,84 @@ sendMessage(chatTab: ChatTab, text: string, gameType: string, sendFrom: string, 
   private makeMessageName(sendFrom: string, sendTo?: string): string {
     let sendFromName = this.findObjectName(sendFrom);
     if (sendTo == null || sendTo.length < 1) return sendFromName;
-
     let sendToName = this.findObjectName(sendTo);
     return sendFromName + ' > ' + sendToName;
   }
 
-  private findImageIdentifier(identifier: string): string {
-    let object = ObjectStore.instance.get(identifier);
+  private setLastControlInfoToPeer(sendFrom: string, imageIdentifier: string, imgindex: number, sendTo?: string) {
+    // const sendFromName = this.findObjectName(sendFrom);
+    // const peerCursor = PeerCursor.myCursor;
+
+    // if (!peerCursor) return;
+
+    // if (sendTo == null || sendTo.length < 1) {
+    //   if (peerCursor.lastControlImageIdentifier != imageIdentifier){
+    //     peerCursor.lastControlImageIdentifier = imageIdentifier;
+    //   }
+    //   if (peerCursor.lastControlCharacterName != sendFromName){
+    //     peerCursor.lastControlCharacterName = sendFromName;
+    //   }
+    //   peerCursor.lastControlSendFrom = sendFrom;
+    //   peerCursor.lastControlImageIndex = imgindex;
+    // }
+  }
+
+  private _ImageIndex = 0;
+  private findImageIdentifierName(sendFrom: string, name: string): string {
+    let object = ObjectStore.instance.get(sendFrom);
+    this._ImageIndex = 0;
+    if (object instanceof GameCharacter && object.imageDataElement) {
+      let data: DataElement = object.imageDataElement;
+      for (let child of data.children) {
+        if (child instanceof DataElement && child.name === 'imageIdentifier') {
+          if (child.getAttribute('currentValue') === name){
+            const img = ImageStorage.instance.get(<string> child.value);
+            if (img) return img.identifier;
+          }
+        }
+        this._ImageIndex++;
+      }
+      this._ImageIndex = 0;
+      for (let child of data.children) {
+        if (child instanceof DataElement && child.name === 'imageIdentifier') {
+          if (child.getAttribute('currentValue') && child.getAttribute('currentValue').indexOf(name) === 0){
+            const img = ImageStorage.instance.get(<string> child.value);
+            if (img) return img.identifier;
+          }
+        }
+        this._ImageIndex++;
+      }
+    }
+    return '';
+  }
+
+  private findImageIdentifier(sendFrom: string, index: number = 0): string {
+    let object = ObjectStore.instance.get(sendFrom);
     if (object instanceof GameCharacter) {
+      let imageElements = object.imageDataElement ? object.imageDataElement.children.filter(e => (e as DataElement).name === 'imageIdentifier') : [];
+      if (imageElements.length > index) {
+        let img = ImageStorage.instance.get(<string> imageElements[index].value);
+        if (img) return img.identifier;
+      }
       return object.imageFile ? object.imageFile.identifier : '';
     } else if (object instanceof PeerCursor) {
       return object.imageIdentifier;
     }
-    return identifier;
+    return '';
+  }
+
+  private findImagePos(identifier: string): number {
+    let object = ObjectStore.instance.get(identifier);
+    if (object instanceof GameCharacter) {
+        let element = object.detailDataElement ? object.detailDataElement.getFirstElementByName('POS') : null; 
+        if (element) {
+            let val = element.currentValue !== undefined ? element.currentValue : element.value;
+            let num = parseInt(val.toString(), 10);
+            if (0 <= num && num <= 11) return num;
+        }
+        return 0;
+    }
+    return -1;
   }
 
   private calcTimeStamp(chatTab: ChatTab): number {
