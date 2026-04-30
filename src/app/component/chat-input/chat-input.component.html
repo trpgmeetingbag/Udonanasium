@@ -3,25 +3,31 @@
     <img *ngIf="0 < imageFile.url.length" class="image" [src]="imageFile.url | safe: 'resourceUrl'" />
   </div>
   <div class="table-cell" style="width:100%">
-    <div>
-      <select class="is-caret" style="width: 12em;" [(ngModel)]="sendFrom">
-        <option *ngIf="!onlyCharacters" [value]="myPeer?.identifier">{{myPeer?.name}}（あなた）</option>
-        <option *ngFor="let gameCharacter of gameCharacters" [value]="gameCharacter.identifier">{{gameCharacter.name}}
-        </option>
-      </select> ＞
-      <select class="is-caret" style="width: 10em;" [(ngModel)]="sendTo">
-        <option [value]="''">全員</option>
-        <option *ngFor="let peer of otherPeers" [value]="peer.identifier">{{peer.name}}
+
+    <!-- トップ行：送信元、送信先、ダイスボットをすべてng-selectで統一 -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 4px;">
+      <ng-select class="ud-select is-caret" style="width: 12em;" [(ngModel)]="sendFrom" [clearable]="false">
+        <ng-option *ngIf="!onlyCharacters" [value]="myPeer?.identifier">{{myPeer?.name}}（あなた）</ng-option>
+        <ng-option *ngFor="let gameCharacter of gameCharacters" [value]="gameCharacter.identifier">{{gameCharacter.name}}</ng-option>
+      </ng-select>
+      
+      <span style="margin: 0 4px;">＞</span>
+      
+      <ng-select class="ud-select is-caret" style="width: 10em;" [(ngModel)]="sendTo" [clearable]="false">
+        <ng-option [value]="''">全員</ng-option>
+        <ng-option *ngFor="let peer of otherPeers" [value]="peer.identifier">{{peer.name}}
           <ng-container *ngIf="peer === myPeer">（あなた）</ng-container>
-        </option>
-      </select>
-      <select class="is-caret" style="width: 15em; margin-left:.1em;" (change)="loadDiceBot($any($event.target).value)" [(ngModel)]="gameType"
-        [ngModelOptions]="{standalone: true}">
-        <option *ngFor="let diceBotInfo of diceBotInfos" [value]="diceBotInfo.id">{{diceBotInfo.name}}</option>
-      </select>
-      <button (click)="showDicebotHelp()">?</button>
+        </ng-option>
+      </ng-select>
+      
+      <ng-select class="ud-select is-caret" style="width: 15em; margin-left: 4px;" (change)="loadDiceBot($event)" [(ngModel)]="gameType"
+        [ngModelOptions]="{standalone: true}" [clearable]="false" placeholder="システムを検索...">
+        <ng-option *ngFor="let diceBotInfo of diceBotInfos" [value]="diceBotInfo.id">{{diceBotInfo.name}}</ng-option>
+      </ng-select>
+      
+      <button (click)="showDicebotHelp()" style="margin-left: 4px;">?</button>
     </div>
-    
+
     <div *ngIf="!isGameTypeInList()">
       <font size="1.5" color="#FF0000">※ダイスボットが見つかりません(おそらくバージョン違いです)再選択してください。</font>
     </div>

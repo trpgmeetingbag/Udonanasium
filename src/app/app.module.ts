@@ -61,6 +61,8 @@ import { ChatTachieImageComponent } from './component/chat-tachie-img/chat-tachi
 // 上部のimport群に追加
 import { ChatDetailSettingComponent } from './component/chat-detail-setting/chat-detail-setting.component';
 
+import { NgSelectModule } from '@ng-select/ng-select'; // ← これを追加
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -113,7 +115,8 @@ import { ChatDetailSettingComponent } from './component/chat-detail-setting/chat
     BrowserModule,
     BrowserAnimationsModule,
     CommonModule,
-    FormsModule
+    FormsModule,
+    NgSelectModule
   ],
   providers: [
     AppConfigService,
