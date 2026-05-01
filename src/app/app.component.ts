@@ -41,6 +41,7 @@ import { PointerDeviceService } from 'service/pointer-device.service';
 import { SaveDataService } from 'service/save-data.service';
 import { ImageTag } from '@udonarium/image-tag';
 import { ImageTagList } from '@udonarium/image-tag-list';
+import { CutInWindowComponent } from 'component/cut-in-window/cut-in-window.component';
 
 
 @Component({
@@ -193,6 +194,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       })
       .on('DISCONNECT_PEER', event => {
         this.lazyNgZoneUpdate(event.isSendFromSelf);
+      })
+      .on('START_CUT_IN', event => {
+        let cutIn = event.data.cutIn;
+        if (!cutIn) return;
+        // カットインウィンドウを生成し、データを渡す
+        let panel = this.panelService.open<CutInWindowComponent>(CutInWindowComponent, {
+          title: cutIn.name,
+          left: 0, top: 0, width: cutIn.width, height: cutIn.height + 25
+        });
+        panel.cutIn = cutIn;
       });
 
     workaroundForMobileSafari();

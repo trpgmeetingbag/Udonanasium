@@ -1,0 +1,33 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Flexboxを捨て、絶対に横並びになるGridを採用 */
+.grid-container {
+  display: grid;
+  grid-template-columns: 200px 1fr; /* 左は200px固定、右は残り全部 */
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.grid-left {
+  overflow-y: auto;
+  height: 100%;
+}
+
+.grid-right {
+  overflow-y: auto;
+  height: 100%;
+  padding-right: 5px;
+}
+
+/* 既存の装飾 */
+.images-select { display: flex; }
+.grow {
+  text-shadow: 1px 1px 0px #fff, -1px 1px 0px #fff, 1px -1px 0px #fff, -1px -1px 0px #fff, 1px 0px 0px #fff, 0px 1px 0px #fff, -1px 0px 0px #fff, 0px -1px 0px #fff; 
+}
+.is-caret { caret-color: rgba(0,0,0,0.95); }

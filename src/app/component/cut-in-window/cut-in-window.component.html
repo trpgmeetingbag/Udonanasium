@@ -1,0 +1,14 @@
+<div class="cut-in" *ngIf="cutIn" id="{{cutIn.identifier}}_window">
+  <youtube-player *ngIf="cutIn.videoId"
+    #videoPlayerComponent 
+    [videoId]="cutIn.videoId" 
+    [width]="width"
+    [height]="height - 25" 
+    suggestedQuality="default" 
+    [playerVars]="{autoplay: 1, controls: 0, start: cutIn.videoStart, loop: (cutIn.isLoop ? 1 : 0), playsinline: 1, rel: 0, listType: 'playlist', list: (cutIn.playListId ? cutIn.playListId : undefined), playlist: (cutIn.playListId ? undefined : cutIn.videoId), disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1}"
+    (ready)="onPlayerReady($event)"
+    (stateChange)="onPlayerStateChange($event)">
+  </youtube-player>
+
+  <img *ngIf="!cutIn.videoId" [src]="cutIn.cutInImage.url | safe: 'resourceUrl'">
+</div>

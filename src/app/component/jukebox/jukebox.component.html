@@ -1,5 +1,12 @@
 <div>試聴音量：<input [(ngModel)]="auditionVolume" type="range" min="0" max="1" step="0.01" /></div>
 <div>BGM音量：<input [(ngModel)]="volume" type="range" min="0" max="1" step="0.01" /></div>
+<div>着信音量：<input [(ngModel)]="ringtoneVolume" type="range" min="0" max="1" step="0.01" /></div>
+<hr/>
+<div>全体音量：<input [(ngModel)]="roomVolume" type="range" min="0" max="2" step="0.01" [disabled]="!roomVolumeChange"/><br>
+  <span style="font-size: 12px;">※全プレイヤー共通 GM制御用：変更を有効にする<input type="checkbox" id="roomVolumeChange" [(ngModel)]="roomVolumeChange"></span>
+</div>
+<hr/>
+<button (click)="openCutInList()">カットイン編集</button>
 <hr/>
 <div>
   <div *ngFor="let audio of audios" class="box">
@@ -28,4 +35,5 @@
 </label>
 <div style="font-size: 12px;">※「試聴」は自分のスピーカーだけで音楽を1回再生します。</div>
 <div style="font-size: 12px;">※「BGM」はルーム内の全員で1つの音楽をループ再生します。</div>
+<div style="font-size: 12px;">※「着信音量」はチャット時の着信音の音量を独立して変更します。</div>
 <div style="font-size: 12px;">※現行バージョンのセーブデータ（zip）には音楽ファイルは含まれません。（毎回アップロードが必要です）</div>

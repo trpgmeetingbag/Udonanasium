@@ -76,7 +76,8 @@
           (keydown.control.arrowup)="moveHistory($any($event), -1)" 
           (keydown.control.arrowdown)="moveHistory($any($event), 1)"
           #textArea></textarea>
-        <button type="submit" (click)="sendChat($any($event))">SEND</button>
+          <button type="submit" (click)="sendChat(null)">SEND</button>
+        <!-- <button type="submit" (click)="sendChat($any($event))">SEND</button> -->
       </form>
     </div>
     

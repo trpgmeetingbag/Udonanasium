@@ -99,4 +99,32 @@ export class GameDataElementComponent implements OnInit, OnChanges, OnDestroy {
       this.updateTimer = null;
     }, 66);
   }
+
+  escapeHtml(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+               .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  isEditUrl(dataElmIdentifier: string) {
+    let box = <HTMLInputElement>document.getElementById(dataElmIdentifier);
+    if (!box) return false;
+    return box.checked;
+  }
+  
+  isUrlText(text: any) {
+    if (typeof text !== 'string') return false;
+    if (text.match(/^https:\/\//)) return true;
+    if (text.match(/^http:\/\//)) return true;
+    return false;
+  }
+  
+  changeChk() {
+    // 画面更新のトリガー用
+  }
+
+  textFocus(dataElmIdentifier: string) {
+    let box = <HTMLInputElement>document.getElementById(dataElmIdentifier);
+    if (box) box.checked = true;
+  }
 }

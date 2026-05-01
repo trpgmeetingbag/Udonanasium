@@ -65,6 +65,15 @@ import { NgSelectModule } from '@ng-select/ng-select'; // ← これを追加
 
 import { DiceTableSettingComponent } from './component/dice-table-setting/dice-table-setting.component';
 
+import { LinkyModule } from 'ngx-linky'; // ←これを追加
+
+import { CutInListComponent } from 'component/cut-in-list/cut-in-list.component';
+import { CutInBgmComponent } from 'component/cut-in-bgm/cut-in-bgm.component';
+
+import { CutInWindowComponent } from 'component/cut-in-window/cut-in-window.component';
+
+import { YouTubePlayerModule } from '@angular/youtube-player';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -112,6 +121,9 @@ import { DiceTableSettingComponent } from './component/dice-table-setting/dice-t
     ChatTachieComponent, // 追加
     ChatTachieImageComponent, // 追加
     ChatDetailSettingComponent,
+    CutInListComponent,  // ←追加
+    CutInBgmComponent,   // ←追加
+    CutInWindowComponent,
     DiceTableSettingComponent 
   ],
   imports: [
@@ -119,7 +131,9 @@ import { DiceTableSettingComponent } from './component/dice-table-setting/dice-t
     BrowserAnimationsModule,
     CommonModule,
     FormsModule,
-    NgSelectModule
+    NgSelectModule,
+    LinkyModule,
+    YouTubePlayerModule,
   ],
   providers: [
     AppConfigService,

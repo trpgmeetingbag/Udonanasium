@@ -7,7 +7,8 @@
            [style.left.%]="(pos / 11) * 100"
            [style.transform]="getTransformStyle(pos)"
            [style.height.px]="tachieHeightValue"
-           [style.opacity]="activePos === -1 || activePos === pos ? 1 : 0.5"
+           [style.opacity]="activePos === -1 || activePos === pos ? 1 : 0.66"
+           [style.z-index]="activePos === pos ? 100 : pos"
            (mousedown)="tachieClick(pos)"
            draggable="false" />
     </ng-container>

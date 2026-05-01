@@ -170,7 +170,8 @@
   </ng-template>
   <ng-template #elseBlock>
     <ng-container [ngSwitch]="dataElm.type">
-      <ng-container *ngSwitchCase="'note'">
+
+      <!-- <ng-container *ngSwitchCase="'note'">
         <div class="section">
           <div>{{dataElm.name}}</div>
           <div class="note" style="position: relative;">
@@ -180,7 +181,31 @@
             <div class="textarea-spacer">{{dataElm.value}}</div>
           </div>
         </div>
+      </ng-container> -->
+
+      <ng-container *ngSwitchCase="'note'">
+        <div class="section">
+          <div>{{dataElm.name}}
+            <span [hidden]="!isUrlText(dataElm.value)" style="font-size: 0.9em; font-weight: normal;">
+              &nbsp;&nbsp;URL編集:<input id="{{dataElm.identifier + '_ov'}}" type="checkbox" (change)="changeChk()"/>
+            </span>
+          </div>
+          <div class="note" style="position: relative;">
+            <div class="is-fill">
+              <textarea class="textarea" [(ngModel)]="dataElm.value" spellcheck="false"
+                (focus)="textFocus(dataElm.identifier + '_ov')"
+                [hidden]="!isEditUrl(dataElm.identifier + '_ov') && isUrlText(dataElm.value)"></textarea>
+                
+              <span class="textarea-url" 
+                [innerHTML]="escapeHtml(dataElm.value) | linky:{stripPrefix: false} | safe: 'html'" 
+                [hidden]="isEditUrl(dataElm.identifier + '_ov') || !isUrlText(dataElm.value)"
+                style="word-wrap: break-word; color: #44aaff;"></span>
+            </div>
+            <div class="textarea-spacer">{{dataElm.value}}</div>
+          </div>
+        </div>
       </ng-container>
+
       <ng-container *ngSwitchCase="'numberResource'">
         <div class="tag">{{dataElm.name}}</div>
         <div class="value">

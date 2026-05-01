@@ -262,16 +262,34 @@ export class GameCharacterSheetComponent implements OnInit, OnDestroy {
     });
   }
 
-  private addTachieImage(identifier: string) {
+  // private addTachieImage(identifier: string) {
+  //   if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return;
+  //   const imageRoot = this.tabletopObject.imageDataElement;
+  //   let newTachie = new DataElement();
+  //   newTachie.name = 'imageIdentifier';
+  //   newTachie.currentValue = '差分' + this.tachieElements.length;
+  //   newTachie.value = identifier;
+  //   newTachie.type = 'image';
+  //   imageRoot.appendChild(newTachie);
+  // }
+private addTachieImage(identifier: string) {
     if (!this.tabletopObject || !this.tabletopObject.imageDataElement) return;
     const imageRoot = this.tabletopObject.imageDataElement;
-    let newTachie = new DataElement();
-    newTachie.name = 'imageIdentifier';
-    newTachie.currentValue = '差分' + this.tachieElements.length;
-    newTachie.value = identifier;
-    newTachie.type = 'image';
+    
+    // UUIDを付与して、ネットワーク同期・保存対象として正しく生成する
+    let newTachie: DataElement = DataElement.create(
+      'imageIdentifier', 
+      identifier, 
+      { 'type': 'image', 'currentValue': '差分' + this.tachieElements.length }, 
+      'imageIdentifier_' + identifier + '_' + Date.now() // ユニークなID
+    );
+    
     imageRoot.appendChild(newTachie);
+    
+    // 強制的に状態更新を通知（保存漏れを防ぐため）
+    if (this.tabletopObject) this.tabletopObject.update();
   }
+
 
   removeTachieImage(element: DataElement) {
     if (this.tabletopObject && this.tabletopObject.imageDataElement) {

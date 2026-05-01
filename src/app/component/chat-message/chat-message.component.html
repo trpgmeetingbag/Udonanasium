@@ -48,7 +48,7 @@
 
 <!-- 修正後（ | linky:{stripPrefix: false} を削除し、安全のために safe: 'html' を指定 ） -->
 <ng-template #visible>
-  <span [innerHTML]="escapeHtmlAndRuby(chatMessage.text) | safe: 'html'"></span>
+  <span [innerHTML]="escapeHtmlAndRuby(chatMessage.text) | linky:{stripPrefix: false} | safe: 'html'"></span>
   <span *ngIf="chatMessage.isSendFromSelf" class="edit-btn" (click)="editMessage()">[編集]</span>
   <button *ngIf="chatMessage.isSecret" (click)="discloseMessage()">結果を公開</button>
 </ng-template>

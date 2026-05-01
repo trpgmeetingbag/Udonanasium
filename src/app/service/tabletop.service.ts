@@ -19,6 +19,10 @@ import { TextNote } from '@udonarium/text-note';
 
 import { CoordinateService } from './coordinate.service';
 
+import { Config } from '@udonarium/config';
+import { CutInLauncher } from '@udonarium/cut-in-launcher';
+import { Jukebox } from '@udonarium/Jukebox';
+
 type ObjectIdentifier = string;
 type ObjecNodeIndex = number;
 type LocationName = string;
@@ -64,7 +68,22 @@ export class TabletopService {
     this.initialize();
   }
 
-  private initialize() {
+private initialize() {
+    // ▼ ここから追加：シングルトンオブジェクトの初期化処理
+    if (!ObjectStore.instance.get<Config>('Config')) {
+      let config = new Config('Config');
+      config.initialize();
+    }
+    if (!ObjectStore.instance.get<CutInLauncher>('CutInLauncher')) {
+      let cutInLauncher = new CutInLauncher('CutInLauncher');
+      cutInLauncher.initialize();
+    }
+    if (!ObjectStore.instance.get<Jukebox>('Jukebox')) {
+      let jukebox = new Jukebox('Jukebox');
+      jukebox.initialize();
+    }
+    // ▲ ここまで追加
+
     this.refreshCacheAll();
     EventSystem.register(this)
       .on('UPDATE_GAME_OBJECT', event => {

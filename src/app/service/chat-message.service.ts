@@ -60,24 +60,30 @@ export class ChatMessageService {
         const isMacroCommand = /^:[^\s:+\-*/=^]+\^?[+\-*/=]/.test(text);
         const isMacroResult = /^[^\s:+\-*/=^]+(?:\(最大値\))?:.*＞/.test(text);
 
-        if (msg.tag === 'system' && msg.from === 'System') {
+if (msg.tag === 'system' && msg.from === 'System') {
            if (isMacroResult) {
               if (/\[.*\]/.test(text)) {
                  SoundEffect.play(PresetSound.diceRoll1); 
               } else {
-                 customChime.volume = AudioPlayer.volume;
+                 // ▼ 修正：BGM音量ではなく、専用の着信音音量（デフォルト0.5）を参照する
+                 let ringtoneVol = localStorage.getItem('ringtoneVolume');
+                 customChime.volume = ringtoneVol !== null ? parseFloat(ringtoneVol) : 0.5;
+                 
                  customChime.currentTime = 0;
                  customChime.play().catch(e => {}); 
               }
            }
         }
-        else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
+else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
            if (!isMacroCommand) {
               if (pendingChimeTimer) {
                  clearTimeout(pendingChimeTimer);
               }
               pendingChimeTimer = setTimeout(() => {
-                 customChime.volume = AudioPlayer.volume;
+                 // ▼ 修正：こちらも専用の着信音音量を参照する
+                 let ringtoneVol = localStorage.getItem('ringtoneVolume');
+                 customChime.volume = ringtoneVol !== null ? parseFloat(ringtoneVol) : 0.5;
+                 
                  customChime.currentTime = 0; 
                  customChime.play().catch(e => {}); 
                  pendingChimeTimer = null;

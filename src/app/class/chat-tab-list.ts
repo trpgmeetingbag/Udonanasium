@@ -10,6 +10,7 @@ export class ChatTabList extends ObjectNode implements InnerXml {
   // ーーーここから追加（リリィ互換の立ち絵全体設定）ーーー
   @SyncVar() tachieHeightValue: number = 200;
   
+  
   minTachieSize: number = 100;
   maxTachieSize: number = 1000;
   isTachieInWindow: boolean = true;

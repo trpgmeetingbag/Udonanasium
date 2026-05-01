@@ -1,0 +1,59 @@
+import { SyncObject, SyncVar } from './core/synchronize-object/decorator';
+import { ObjectNode } from './core/synchronize-object/object-node';
+import { InnerXml } from './core/synchronize-object/object-serializer';
+import { ObjectContext } from './core/synchronize-object/game-object';
+import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
+import { Jukebox } from '@udonarium/Jukebox';
+
+@SyncObject('config')
+export class Config extends ObjectNode implements InnerXml {
+
+  @SyncVar() _defaultDiceBot: string = 'DiceBot';
+  @SyncVar() _roomVolume: number = 1.00;
+  @SyncVar() _roomGridDispAlways: boolean = false;
+
+  get defaultDiceBot(): string { return this._defaultDiceBot === '' ? 'DiceBot' : this._defaultDiceBot; }
+  set defaultDiceBot(dice: string) { this._defaultDiceBot = dice; }
+
+  get roomVolume(): number { return this._roomVolume; }
+  set roomVolume(volume: number) { this._roomVolume = volume; }
+
+  get jukebox(): Jukebox { return ObjectStore.instance.get<Jukebox>('Jukebox'); }
+
+  get roomGridDispAlways(): boolean { return this._roomGridDispAlways; }
+  set roomGridDispAlways(roomGridDispAlways: boolean) { this._roomGridDispAlways = roomGridDispAlways; }
+
+  private static _instance: Config;
+  static get instance(): Config {
+    if (!Config._instance) {
+      Config._instance = new Config('Config');
+      Config._instance.initialize();
+    }
+    return Config._instance;
+  }
+
+  parseInnerXml(element: Element) {
+    let context = Config.instance.toContext();
+    context.syncData = this.toContext().syncData;
+    Config.instance.apply(context);
+    Config.instance.update();
+
+    super.parseInnerXml.apply(Config.instance, [element]);
+    this.destroy();
+  }
+
+  apply(context: ObjectContext) {
+    let _roomVolume = this._roomVolume;
+    let _defaultDiceBot = this._defaultDiceBot;
+    super.apply(context);
+    
+    if (_defaultDiceBot !== this._defaultDiceBot) {
+      console.log("デフォルトダイスボット変更");
+    }
+
+    if (_roomVolume !== this._roomVolume) {
+      if (this.jukebox) this.jukebox.setNewVolume();
+      console.log("全体ボリューム変更（Config経由）");
+    }
+  }
+}

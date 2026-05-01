@@ -14,12 +14,13 @@ import { BatchService } from 'service/batch.service';
 import { ChatMessageService } from 'service/chat-message.service';
 import { PanelOption, PanelService } from 'service/panel.service';
 import { PointerDeviceService } from 'service/pointer-device.service';
-
+import { Config } from '@udonarium/config';
 import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
 import { ChatTab } from '@udonarium/chat-tab';
 import { DataElement } from '@udonarium/data-element';
 
 import { ChatColorSettingComponent } from '../chat-color-setting/chat-color-setting.component';
+import { CutInLauncher } from '@udonarium/cut-in-launcher';
 
 @Component({
   selector: 'chat-input',
@@ -32,15 +33,25 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   @Input() onlyCharacters: boolean = false;
   @Input() chatTabidentifier: string = '';
 
-  @Input('gameType') _gameType: string = '';
+@Input('gameType') _gameType: string = '';
   @Output() gameTypeChange = new EventEmitter<string>();
-get gameType(): string { 
-    return this._gameType ? this._gameType : 'DiceBot'; 
+
+  // ▼ Config を参照するためのゲッター
+  get config(): Config { return ObjectStore.instance.get<Config>('Config'); }
+
+  get gameType(): string { 
+    // 個人の設定(_gameType)があればそれを、なければ部屋の共通設定(config)を返す
+    if (this._gameType) return this._gameType;
+    return this.config ? this.config.defaultDiceBot : 'DiceBot'; 
   }
   
   set gameType(gameType: string) { 
     this._gameType = gameType; 
     this.gameTypeChange.emit(gameType); 
+    // 部屋の共通設定(config)も同時に書き換える
+    if (this.config) {
+      this.config.defaultDiceBot = gameType;
+    }
   }
 
   @Input('sendFrom') _sendFrom: string = this.myPeer ? this.myPeer.identifier : '';
@@ -346,6 +357,8 @@ get gameType(): string {
       tachieId: selectedTachieId 
     });
 
+
+
     if (statusChangeResult && character) {
        setTimeout(() => {
           let chatTab = ObjectStore.instance.get<ChatTab>(this.chatTabidentifier);
@@ -366,6 +379,13 @@ get gameType(): string {
           }
        }, 50); 
     }
+
+    // ▼ ここから追加：チャット末尾のカットイン発動判定
+    const cutInLauncher = ObjectStore.instance.get<CutInLauncher>('CutInLauncher');
+    if (cutInLauncher) {
+      cutInLauncher.chatActivateCutIn(this.text, this.sendTo);
+    }
+    // ▲ ここまで追加
 
     this.text = '';
     this.previousWritingLength = this.text.length;

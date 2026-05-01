@@ -210,4 +210,30 @@ export class OverviewPanelComponent implements OnChanges, AfterViewInit, OnDestr
   private getInventoryTags(gameObject: TabletopObject): DataElement[] {
     return this.inventoryService.tableInventory.dataElementMap.get(gameObject.identifier);
   }
+
+  escapeHtml(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+               .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  isEditUrl(dataElmIdentifier: string) {
+    let box = <HTMLInputElement>document.getElementById(dataElmIdentifier);
+    if (!box) return false;
+    return box.checked;
+  }
+  
+  isUrlText(text: any) {
+    if (typeof text !== 'string') return false;
+    if (text.match(/^https:\/\//)) return true;
+    if (text.match(/^http:\/\//)) return true;
+    return false;
+  }
+  
+  changeChk() { }
+
+  textFocus(dataElmIdentifier: string) {
+    let box = <HTMLInputElement>document.getElementById(dataElmIdentifier);
+    if (box) box.checked = true;
+  }
 }
