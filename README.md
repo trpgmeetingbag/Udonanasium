@@ -40,6 +40,7 @@
 ## サーバ設置
 
 ユドナリウムを改造して作ったものなので、ユドナリウムと全く同じ方法で設置できます。
+参考までに、新SkyWay対応ユドナリウム導入の備忘録を作りました。[備忘録][note]
 
 ## License
 
@@ -48,4 +49,4 @@
 [udonarium-url]: https://udonarium.app/
 [udonarium-backend-repo]: https://github.com/TK11235/udonarium-backend
 [SkyWay-url]: https://skyway.ntt.com/
-[note]: 
+[note]: https://note.com/kind_bison1574/n/n7d85973fed2b
