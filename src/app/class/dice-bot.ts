@@ -32,6 +32,70 @@ let queue: PromiseQueue = initializeDiceBotQueue();
 export class DiceBot extends GameObject {
   static diceBotInfos: GameSystemInfo[] = [];
 
+  // ▼▼▼ リリィ版互換：ステータス編集のシークレット判定 ▼▼▼
+  checkSecretEditCommand(chatText: string): boolean {
+    const text: string = ' ' + StringUtil.toHalfWidth(chatText).toLowerCase();
+    const replaceText = text.replace('：', ':');
+    let m = replaceText.match(/\sST?:/i);
+    console.log(m);
+    if( m ) return true;
+    return false;
+  }
+
+  // 繰り返しコマンドを除去し、sより後ろがCOMMAND_PATTERNにマッチするか確認
+// ▼▼▼ リリィ版互換：ダイスロールのシークレット判定 ▼▼▼
+  checkSecretDiceCommand(gameSystem: any, chatText: string): boolean {
+    console.log(`[Debug DB] --- checkSecretDiceCommand 処理開始 ---`);
+    if (!gameSystem) {
+      console.log(`[Debug DB] gameSystemがnullのため終了`);
+      return false;
+    }
+    
+    const text: string = StringUtil.toHalfWidth(chatText).toLowerCase();
+    const nonRepeatText = text.replace(/^(\d+)?\s+/, 'repeat1 ').replace(/^x(\d+)?\s+/, 'repeat1 ').replace(/repeat(\d+)?\s+/, '');
+    const regArray = /^s(.*)?/ig.exec(nonRepeatText);
+
+    console.log(`[Debug DB] 元のテキスト: "${chatText}"`);
+    console.log(`[Debug DB] リピート除去後: "${nonRepeatText}"`);
+    console.log(`[Debug DB] ^s(.*) での抽出結果:`, regArray ? `"${regArray[1]}"` : 'マッチせず(null)');
+    console.log(`[Debug DB] ターゲットシステムの COMMAND_PATTERN:`, gameSystem.COMMAND_PATTERN);
+
+    if (gameSystem.COMMAND_PATTERN && regArray) {
+      const isMatch = gameSystem.COMMAND_PATTERN.test(regArray[1]);
+      console.log(`[Debug DB] COMMAND_PATTERN.test() の結果:`, isMatch);
+      console.log(`[Debug DB] ---------------------------------------`);
+      return isMatch;
+    }
+    
+    console.log(`[Debug DB] COMMAND_PATTERNが存在しないか、Sから始まっていないため false`);
+    console.log(`[Debug DB] ---------------------------------------`);
+    return false;
+  }
+
+  // ▼▼▼ 同期的にゲームシステムを取得（これは前回追加したものでOKです） ▼▼▼
+
+  // // ▼▼▼ シークレットダイス判定用メソッドを追加 ▼▼▼
+  // checkSecretDiceCommand(gameType: string, chatText: string): boolean {
+  //   const text: string = StringUtil.toHalfWidth(chatText).toLowerCase();
+  //   // 繰り返しコマンド（x3 など）を除去して純粋なダイスコマンドを抽出
+  //   const nonRepeatText = text.replace(/^(\d+)?\s+/, 'repeat1 ').replace(/^x(\d+)?\s+/, 'repeat1 ').replace(/repeat(\d+)?\s+/, '');
+  //   const regArray = /^s(.*)?/ig.exec(nonRepeatText);
+    
+  //   if (!regArray) return false;
+
+  //   // 同期的にゲームシステムを取得して判定
+  //   const id = DiceBot.diceBotInfos.some(info => info.id === gameType) ? gameType : 'DiceBot';
+  //   try {
+  //     const gameSystem = loader.getGameSystemClass(id);
+  //     if (gameSystem && gameSystem.COMMAND_PATTERN) {
+  //       return gameSystem.COMMAND_PATTERN.test(regArray[1]);
+  //     }
+  //   } catch {
+  //     return false;
+  //   }
+  //   return false;
+  // }
+  // ▲▲▲ 追加ここまで ▲▲▲
   // GameObject Lifecycle
   onStoreAdded() {
     super.onStoreAdded();
@@ -41,7 +105,7 @@ export class DiceBot extends GameObject {
         if (!chatMessage || !chatMessage.isSendFromSelf || chatMessage.isSystem) return;
 
         let text: string = StringUtil.toHalfWidth(chatMessage.text).trim();
-        let gameType: string = chatMessage.tag;
+        let gameType: string = chatMessage.tag ? chatMessage.tag.split(' ')[0] : '';
 
         try {
 // --- START: ダイス表の割り込み判定 ---
@@ -222,7 +286,19 @@ export class DiceBot extends GameObject {
       }
     });
   }
+  // ▼ 追記：ゲームシステムを同期的に取得するためのメソッド
+  static getGameSystemSync(gameType: string): GameSystemClass | null {
+    if (!loader) return null;
+    const id = this.diceBotInfos.some(info => info.id === gameType) ? gameType : 'DiceBot';
+    try {
+      return loader.getGameSystemClass(id);
+    } catch {
+      return null;
+    }
+  }
 }
+
+
 
 function initializeDiceBotQueue(): PromiseQueue {
   let queue = new PromiseQueue('DiceBotQueue');

@@ -52,6 +52,8 @@ export class ChatInputComponent implements OnInit, OnDestroy {
     if (this.config) {
       this.config.defaultDiceBot = gameType;
     }
+    // ▼▼▼ 追加：ダイスボットを選択した瞬間にシステムを裏読み（プリロード）しておく ▼▼▼
+    DiceBot.loadGameSystemAsync(gameType);
   }
 
   @Input('sendFrom') _sendFrom: string = this.myPeer ? this.myPeer.identifier : '';
@@ -207,6 +209,8 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
+    // ▼▼▼ 追加：起動時にも現在のダイスボットを裏読みさせておく ▼▼▼
+    DiceBot.loadGameSystemAsync(this.gameType);
     EventSystem.register(this)
       .on('MESSAGE_ADDED', event => {
         if (event.data.tabIdentifier !== this.chatTabidentifier) return;

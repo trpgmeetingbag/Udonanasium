@@ -16,6 +16,9 @@ import { DiceBot } from '@udonarium/dice-bot';
 import { PresetSound, SoundEffect } from '@udonarium/sound-effect';
 import { AudioPlayer } from '@udonarium/core/file-storage/audio-player';
 
+// 一番上付近に追記
+import { StringUtil } from '@udonarium/core/system/util/string-util';
+
 const HOURS = 60 * 60 * 1000;
 
 @Injectable()
@@ -251,20 +254,99 @@ sendSystemMessageLastSendCharactor(text: string){
   // START: リリィ互換の送信処理（引数を調整し、エラーを回避）
 // START: リリィ互換の送信処理（引数を調整し、エラーを回避）
 
-    sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string | null, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
-let gameTypeString = '';
+    
+//   sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string | null, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
+//     let gameTypeString = '';
+//     let gameSysClass: any = null; // ★追加：読み込み済みのシステム実体を保持する変数
+//     if (gameSystem) {
+//       if (typeof gameSystem === 'string') {
+//         gameTypeString = gameSystem;
+//         // 文字列だけ渡された場合は、念のため前回の同期取得を試みる（フォールバック）
+//         gameSysClass = (DiceBot as any).getGameSystemSync ? (DiceBot as any).getGameSystemSync(gameTypeString) : null;
+//       } else {
+//         gameTypeString = (gameSystem as GameSystemClass).ID;
+//         gameSysClass = gameSystem; // ★修正：親から渡されたクラス実体をそのまま使う！
+//       }
+//     }
+
+//     let _color = color || '#000000';
+//     let chatMessageTag: string = gameTypeString ? gameTypeString : '';
+
+//     // ▼▼▼ 追加：シークレットダイスの判定（入力したコマンド自体を隠す処理） ▼▼▼
+// // ▼▼▼ 修正：シークレットダイスの判定（システム名の除去と正規表現の強化） ▼▼▼
+//     let dicebot = ObjectStore.instance.get<DiceBot>('DiceBot');
+//     let isSecret = false;
+    
+//     if (gameSysClass && gameSysClass.COMMAND_PATTERN) {
+//       // 1. 全角を半角にし、小文字に統一
+//       let normalizedText = StringUtil.toHalfWidth(text).toLowerCase();
+
+//       // 2. 先頭にシステム名（例："doublecross "）が付いている場合は除去する
+//       let gameIdLower = gameSysClass.ID.toLowerCase();
+//       if (normalizedText.startsWith(gameIdLower + ' ')) {
+//         normalizedText = normalizedText.substring(gameIdLower.length + 1).trim();
+//       }
+
+//       // 3. 繰り返しコマンド（x3 など）を除去
+//       let nonRepeatText = normalizedText
+//         .replace(/^(\d+)?\s+/, 'repeat1 ')
+//         .replace(/^x(\d+)?\s+/, 'repeat1 ')
+//         .replace(/repeat(\d+)?\s+/, '');
+
+//       // 4. 先頭が 's' であるかを判定し、その後ろの文字列を抽出
+//       let regArray = /^s(.*)?/i.exec(nonRepeatText);
+      
+//       // 5. 抽出した文字列がシステムのコマンドパターンに合致するか判定
+//       if (regArray && gameSysClass.COMMAND_PATTERN.test(regArray[1])) {
+//         isSecret = true;
+//       }
+//     }
+    
+//     if (isSecret) {
+//       chatMessageTag += (chatMessageTag.length > 0 ? ' ' : '') + 'secret';
+//     }
+
+sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string | null, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
+    
+    console.log(`[Debug] ====== sendMessage 処理開始 ======`);
+    console.log(`[Debug] 1. 受信した text: "${text}", gameSystemの型: ${typeof gameSystem}`, gameSystem);
+
+    // --- 現在のプロジェクトの文字列仕様から、クラス実体に変換するブリッジ処理 ---
+    let gameSysClass: any = null;
     if (gameSystem) {
       if (typeof gameSystem === 'string') {
-        gameTypeString = gameSystem;
+        gameSysClass = (DiceBot as any).getGameSystemSync ? (DiceBot as any).getGameSystemSync(gameSystem) : null;
+        console.log(`[Debug] 2-A. 文字列から同期取得を試行。取得結果 ID:`, gameSysClass ? gameSysClass.ID : '取得失敗(null)');
       } else {
-        gameTypeString = (gameSystem as GameSystemClass).ID;
+        gameSysClass = gameSystem;
+        console.log(`[Debug] 2-B. クラス実体として直接受信。ID:`, gameSysClass.ID);
       }
     }
 
-    let _color = color || '#000000';
-    let chatMessageTag: string = gameTypeString ? gameTypeString : '';
+    let dicebot = ObjectStore.instance.get<DiceBot>('DiceBot');
+    let chatMessageTag: string;
     
-    // chat-input側で選択された立ち絵ID（tachieId）があればそれを、なければデフォルト画像を取得
+    if (gameSysClass == null) {
+      chatMessageTag = (typeof gameSystem === 'string') ? gameSystem : '';
+      console.log(`[Debug] 3-A. gameSysClassがnullのため判定をスキップ。Tag:`, chatMessageTag);
+    } else {
+      console.log(`[Debug] 3-B. シークレット判定処理へ移行...`);
+      let isSecretDice = dicebot ? (dicebot as any).checkSecretDiceCommand(gameSysClass, text) : false;
+      let isSecretEdit = dicebot ? (dicebot as any).checkSecretEditCommand(text) : false;
+      
+      console.log(`[Debug]   -> checkSecretDiceCommand 結果:`, isSecretDice);
+      console.log(`[Debug]   -> checkSecretEditCommand 結果:`, isSecretEdit);
+
+      if (isSecretDice || isSecretEdit) {
+        chatMessageTag = `${gameSysClass.ID} secret`;
+      } else {
+        chatMessageTag = gameSysClass.ID;
+      }
+    }
+    console.log(`[Debug] 4. 最終的に付与する Tag:`, chatMessageTag);
+    console.log(`[Debug] ======================================`);
+
+    let _color = color || '#000000';
     let finalImageIdentifier = tachieId || this.findImageIdentifier(sendFrom);
 
     let chatMessage: ChatMessageContext = {
@@ -276,6 +358,8 @@ let gameTypeString = '';
       tag: chatMessageTag,
       text: text
     };
+
+    // ...以降の立ち絵置き換え処理（ let chkMessage = ' ' + text; など）はそのまま残してください
 
     // 立ち絵置き換えとテキスト整形
     let chkMessage = ' ' + text;

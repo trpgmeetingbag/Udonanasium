@@ -1,6 +1,7 @@
 <div class="component">
   <ng-container *ngTemplateOutlet="inventoryTab"></ng-container>
   <ng-container *ngTemplateOutlet="inventoryViewSetting"></ng-container>
+  <ng-container *ngTemplateOutlet="inventoryMultiMove"></ng-container>
   <div *ngIf="getGameObjects(selectTab).length < 1">{{getTabTitle(selectTab)}}インベントリは空です</div>
   <div (contextmenu)="onContextMenu($event, $any(gameObject))" *ngFor="let gameObject of getGameObjects(selectTab); trackBy: trackByGameObject"
     (click)="selectGameObject(gameObject)" [ngClass]="{'box': true, 'selected': (selectedIdentifier === gameObject.identifier)}">
@@ -49,6 +50,26 @@
     </table>
   </ng-container>
 </ng-template>
+<!-- ▼▼▼ 追記：一括移動メニュー本体のテンプレート ▼▼▼ -->
+<ng-template #inventoryMultiMove>
+  <ng-container *ngIf="isMultiMove">
+    <div style="font-size: 0.8em; margin-bottom: 4px;">
+      <span style="font-weight: bold; margin-right: 4px;">一括移動:</span>
+      <button class="tab-setting small-font" (click)="allTabBoxCheck();">
+        <ng-container *ngIf="existsMultiMoveSelectedInTab(); else selectAll">全解除口↓</ng-container>
+        <ng-template #selectAll>全選択〆↓</ng-template>
+      </button>
+      <button class="tab-setting small-font" (click)="onMultiMoveContextMenu()"><i class="material-icons small-font">settings</i>実行</button>
+      <button class="tab-setting small-font" (click)="toggleMultiMove()"><i class="material-icons small-font">settings</i>キャンセル</button>
+    </div>
+  </ng-container>
+  <ng-container *ngIf="!isMultiMove">
+    <div style="margin-bottom: 4px;">
+      <button class="tab-setting small-font" (click)="toggleMultiMove()"><i class="material-icons small-font">settings</i>一括移動</button>
+    </div>
+  </ng-container>
+</ng-template>
+<!-- ▼▼▼ 修正：既存の gameObjectTags テンプレート内にチェックボックスを足す ▼▼▼ -->
 <ng-template #gameObjectTags let-gameObject="gameObject">
   <div class="inventory-object">
     <div class="object-name">{{gameObject.name}}
@@ -57,6 +78,11 @@
       </button>
     </div>
     <div class="object-tags-box">
+      <!-- ▼ 追加：一括移動モード時のみ表示されるチェックボックス -->
+      <div class="table-cell" *ngIf="isMultiMove" style="vertical-align: middle; padding-right: 4px;">
+        <input type="checkbox" [checked]="multiMoveTargets.has(gameObject.identifier)" (change)="toggleMultiMoveTarget($event, gameObject)" />
+      </div>
+      
       <div class="table-cell image-box">
         <img *ngIf="gameObject.imageFile.url" [src]="gameObject.imageFile.url | safe: 'resourceUrl'" />
       </div>

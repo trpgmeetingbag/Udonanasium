@@ -1,6 +1,7 @@
 <div class="container" [class.simple-mode]="chatSimpleDispFlag">
+<!-- 変更後 -->
   <div class="message" [ngClass]="{
-    'direct-message': (!chatMessage.isSystem && (chatMessage.isDirect || chatMessage.isSecret)), 
+    'direct-message': (chatMessage.isDirect || chatMessage.isSecret) && (!chatMessage.isSystem || chatMessage.isDicebot), 
     'system-message': chatMessage.isSystem, 
     'dicebot-message': chatMessage.isDicebot
   }" [@flyInOut]="animeState">
