@@ -2,6 +2,51 @@
   display: block;
 }
 
+.color-setting {
+  background-color: transparent;
+  color: #444; 
+  border: solid 1px #555;
+  padding: 2px 4px 1px 4px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex; /* ▼ 追記：歯車と文字を横に並べる */
+  align-items: center;  /* ▼ 追記：歯車と文字の縦位置を中央で揃える */
+}
+
+.color-setting:hover {
+  background-color: #888;
+  color: #eee;
+  border: solid 1px #555;
+}
+
+.small-font {
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.material-icons {
+  vertical-align: middle;
+  font-size: 1.0rem;
+}
+
+div.color{
+  display: inline-block;
+  border: solid 1px #000;
+  box-sizing: border-box;
+  position: relative;
+  top:4px;
+  width:18px;
+  height:18px;
+  margin-left:2px;
+  margin-right:2px;
+  background-color: #888;
+  cursor: pointer;
+}
+
+button.color:focus {
+  outline: none;
+}
+
 .table {
   box-sizing: border-box;
   padding : 5px;
@@ -23,7 +68,7 @@
   text-align: center;
 }
 
-.image {
+.image{
   width: 100%;
   height: 100%;
   vertical-align: bottom;
@@ -62,11 +107,17 @@
   color: #CCC;
 }
 
+.color-box-tag {
+  width: 4.5em;
+  max-width: 4.5em;
+  min-width: 4.5em;
+}
+
 /* 拡張UI用のレイアウト幅設定 */
 .color-setting-tag {
-  width: 6em;
-  max-width: 6em;
-  min-width: 6em;
+  width: 10em;
+  max-width: 10em;
+  min-width: 10em;
 }
 
 .tachie-tag {
@@ -76,30 +127,35 @@
   white-space: nowrap;
 }
 
+.tachie-num {
+  font-weight: bold;
+  width: 4em;
+  text-align: right;
+  font-family: inherit;
+}
+
 .is-caret {
   caret-color: rgba(0,0,0,0.95);
 }
-/* --- ng-selectのレイアウト調整（標準のselectに合わせる） --- */
+
+/* --- 現在のプロジェクト独自のスタイル（ng-selectとカラードット用） --- */
 ::ng-deep .ud-select {
   display: inline-block;
   vertical-align: middle;
-  font-size: 13px; /* 周りのフォントサイズと統一 */
+  font-size: 13px;
 }
 
-/* 高さを標準のセレクトボックス(24px)に圧縮 */
 ::ng-deep .ud-select .ng-select-container {
   min-height: 24px !important;
   height: 24px !important;
   border-radius: 3px;
 }
 
-/* 内部のテキスト位置の微調整 */
 ::ng-deep .ud-select .ng-select-container .ng-value-container {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
 
-/* 右側の矢印(▼)の位置調整 */
 ::ng-deep .ud-select .ng-arrow-wrapper {
   height: 24px;
 }

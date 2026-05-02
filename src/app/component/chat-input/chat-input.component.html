@@ -47,9 +47,10 @@
           <div class="color-dot" (click)="setColorNum(1)" [style.background-color]="chatColorCode_1" [style.border-width.px]="colorSelectorBoxBorder_1" [style.border-radius]="colorSelectorRadius_1"></div>
           <div class="color-dot" (click)="setColorNum(2)" [style.background-color]="chatColorCode_2" [style.border-width.px]="colorSelectorBoxBorder_2" [style.border-radius]="colorSelectorRadius_2"></div>
           
-          <button class="small-font" style="margin-left: 5px; padding: 2px;" (click)="showColorSetting()">
-            <i class="material-icons" style="font-size: 14px;">settings</i>色設定
-          </button>
+<!-- ▼ button を span に変え、color-setting クラスを付与 -->
+          <span class="color-setting small-font" style="margin-left: 5px;" (click)="showColorSetting()">
+            <i class="material-icons" style="font-size: 14px; margin-right: 1px;">settings</i>色設定
+          </span>
         </div>
       </div>
 
