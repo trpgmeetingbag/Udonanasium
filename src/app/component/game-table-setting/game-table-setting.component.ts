@@ -13,6 +13,9 @@ import { ModalService } from 'service/modal.service';
 import { PanelService } from 'service/panel.service';
 import { SaveDataService } from 'service/save-data.service';
 
+import { DiceBot } from '@udonarium/dice-bot';
+import { Config } from '@udonarium/config';
+
 @Component({
   selector: 'game-table-setting',
   templateUrl: './game-table-setting.component.html',
@@ -21,6 +24,34 @@ import { SaveDataService } from 'service/save-data.service';
 export class GameTableSettingComponent implements OnInit, OnDestroy {
   minSize: number = 1;
   maxSize: number = 100;
+
+  // ▼▼▼ 追加：標準のダイスボット設定用 ▼▼▼
+  // ▼ Config を参照するためのゲッター（ObjectStoreの迷子を避け、実体を直接掴む）
+  get config(): Config { return Config.instance; }
+  
+  private isDiceBotManuallyChanged = false;
+  
+  get defaultDiceBot(): string { 
+    return this.config ? this.config.defaultDiceBot : 'DiceBot'; 
+  }
+  
+  set defaultDiceBot(diceBot: string) { 
+    if (this.config && this.isDiceBotManuallyChanged) {
+      this.config.defaultDiceBot = diceBot; 
+    }
+  }
+
+  // ▼ HTML側から呼ばれるメソッドを新設
+  onChangeDefaultDiceBot(diceBot: string) {
+    this.isDiceBotManuallyChanged = true;
+    this.defaultDiceBot = diceBot; // セッターを呼ぶ
+    // 処理が終わったらフラグを戻す（次回以降の誤爆防止）
+    setTimeout(() => this.isDiceBotManuallyChanged = false, 0);
+  }
+
+  get diceBotInfos() { return DiceBot.diceBotInfos; }
+  // ▲▲▲ 追加ここまで ▲▲▲
+
   get tableBackgroundImage(): ImageFile {
     return this.imageService.getEmptyOr(this.selectedTable ? this.selectedTable.imageIdentifier : null);
   }

@@ -37,23 +37,67 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   @Output() gameTypeChange = new EventEmitter<string>();
 
   // ▼ Config を参照するためのゲッター
-  get config(): Config { return ObjectStore.instance.get<Config>('Config'); }
+  get config(): Config { return Config.instance; }
+  
 
-  get gameType(): string { 
-    // 個人の設定(_gameType)があればそれを、なければ部屋の共通設定(config)を返す
-    if (this._gameType) return this._gameType;
-    return this.config ? this.config.defaultDiceBot : 'DiceBot'; 
+  // get gameType(): string { 
+  //   // 個人の設定(_gameType)があればそれを、なければ部屋の共通設定(config)を返す
+  //   if (this._gameType) return this._gameType;
+  //   return this.config ? this.config.defaultDiceBot : 'DiceBot'; 
+  // }
+  
+  // set gameType(gameType: string) { 
+  //   this._gameType = gameType; 
+  //   this.gameTypeChange.emit(gameType); 
+  //   // 部屋の共通設定(config)も同時に書き換える
+  //   if (this.config) {
+  //     this.config.defaultDiceBot = gameType;
+  //   }
+  //   // ▼▼▼ 追加：ダイスボットを選択した瞬間にシステムを裏読み（プリロード）しておく ▼▼▼
+  //   DiceBot.loadGameSystemAsync(gameType);
+  // }
+  // 以前の get gameType / set gameType を以下のシンプルなものに差し替えます
+get gameType(): string { 
+    return this._gameType || 'DiceBot'; 
   }
   
   set gameType(gameType: string) { 
     this._gameType = gameType; 
     this.gameTypeChange.emit(gameType); 
-    // 部屋の共通設定(config)も同時に書き換える
-    if (this.config) {
-      this.config.defaultDiceBot = gameType;
-    }
-    // ▼▼▼ 追加：ダイスボットを選択した瞬間にシステムを裏読み（プリロード）しておく ▼▼▼
     DiceBot.loadGameSystemAsync(gameType);
+  }
+
+  // ユーザーが手動でダイスボットを選んだかを記憶するフラグ
+  private isGameTypeManuallyChanged: boolean = false;
+
+  // HTMLのプルダウンが操作された時に呼ばれる処理
+  onChangeGameType(gameType: string) {
+    this.isGameTypeManuallyChanged = true; // 手動で変更したことを記憶！
+    this.loadDiceBot(gameType);
+  }
+
+  // 部屋のデフォルト設定を読み込んで適用する処理
+private checkAndApplyDefaultDiceBot() {
+    console.log(`[Debug] ====== ダイスボット自動適用チェック開始 ======`);
+    console.log(`[Debug] 1. 手動変更フラグ: ${this.isGameTypeManuallyChanged}`);
+    console.log(`[Debug] 2. Configのデータ: ${this.config ? this.config.defaultDiceBot : 'Configが存在しません'}`);
+    console.log(`[Debug] 3. 現在のチャット欄: ${this._gameType}`);
+
+    if (this.isGameTypeManuallyChanged) {
+      console.log(`[Debug] 結論: 手動で変更済みのため、自動上書きをスキップします`);
+      console.log(`[Debug] ==============================================`);
+      return; 
+    }
+
+    if (this.config && this.config.defaultDiceBot) {
+      if (this._gameType !== this.config.defaultDiceBot) {
+        console.log(`[Debug] 結論: ${this._gameType} から ${this.config.defaultDiceBot} へ自動変更を実行！`);
+        this.gameType = this.config.defaultDiceBot;
+      } else {
+        console.log(`[Debug] 結論: 既に一致しているため変更しません`);
+      }
+    }
+    console.log(`[Debug] ==============================================`);
   }
 
   @Input('sendFrom') _sendFrom: string = this.myPeer ? this.myPeer.identifier : '';
@@ -209,9 +253,29 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    // ▼▼▼ 追加：起動時にも現在のダイスボットを裏読みさせておく ▼▼▼
+    this.checkAndApplyDefaultDiceBot();
+    
+    // ▼▼▼ 追加：起動時に、部屋の標準ダイスボットを自分のチャット欄にセットする ▼▼▼
+    // if (this.config && this.config.defaultDiceBot) {
+    //   // 初回ロード時（空っぽ、またはDiceBotのまま）なら部屋の設定を適用する
+    //   if (!this._gameType || this._gameType === 'DiceBot') {
+    //     this.gameType = this.config.defaultDiceBot;
+    //   }
+    // }
+    // ▲▲▲ 追加ここまで ▲▲▲
+
     DiceBot.loadGameSystemAsync(this.gameType);
     EventSystem.register(this)
+.on('UPDATE_GAME_OBJECT', event => {
+        // ▼ 変更箇所： 'Config' という aliasName が更新されたかどうかの判定に厳密化
+        if (event.data.aliasName === 'config') {
+          // 0ミリ秒待つことで、Configが完全に再生成されてObjectStoreに登録されるのを待つ
+          setTimeout(() => {
+             this.checkAndApplyDefaultDiceBot();
+             this.changeDetector.markForCheck(); // 画面の表示を更新
+          }, 0);
+        }
+      })
       .on('MESSAGE_ADDED', event => {
         if (event.data.tabIdentifier !== this.chatTabidentifier) return;
         let message = ObjectStore.instance.get<ChatMessage>(event.data.messageIdentifier);
@@ -463,16 +527,24 @@ private allowsChat(gameCharacter: GameCharacter): boolean {
     }
   }
 
+// メソッド名は互換性のためそのままにしていますが、実質的に「すべての変数を置換する」機能になります
   private replaceMaxValueReferences(text: string, character: GameCharacter): string {
     if (!text || !character) return text;
-    return text.replace(/\{([^}]+)\^\}/g, (match, attrName) => {
+    
+    // ▼ 修正: {変数名} または {変数名^} の両方にマッチするように正規表現を変更
+    return text.replace(/\{([^}]+?)(\^?)\}/g, (match, attrName, maxFlag) => {
+      let isMax = maxFlag === '^';
+      
       let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
                       character.commonDataElement?.getFirstElementByName(attrName);
+                      
       if (targetElm) {
         const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
-        if (isResource && targetElm.value != null) return targetElm.value.toString();
+        // isMax が true なら value(最大値) を、false なら currentValue(現在値) を取得
+        let val = (isResource && !isMax) ? targetElm.currentValue : targetElm.value;
+        if (val != null) return val.toString();
       }
-      return match;
+      return match; // 変数が見つからなかった場合はそのまま返す
     });
   }
 

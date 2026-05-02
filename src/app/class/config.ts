@@ -32,7 +32,10 @@ export class Config extends ObjectNode implements InnerXml {
     return Config._instance;
   }
 
-  parseInnerXml(element: Element) {
+parseInnerXml(element: Element) {
+    console.log(`[Debug Config] --- ZIPからXMLデータを読み込みました！ ---`);
+    console.log(`[Debug Config] XMLの中身:`, element.outerHTML);
+
     let context = Config.instance.toContext();
     context.syncData = this.toContext().syncData;
     Config.instance.apply(context);
@@ -40,6 +43,7 @@ export class Config extends ObjectNode implements InnerXml {
 
     super.parseInnerXml.apply(Config.instance, [element]);
     this.destroy();
+    console.log(`[Debug Config] XMLの中身:`, element.outerHTML);
   }
 
   apply(context: ObjectContext) {
@@ -48,12 +52,11 @@ export class Config extends ObjectNode implements InnerXml {
     super.apply(context);
     
     if (_defaultDiceBot !== this._defaultDiceBot) {
-      console.log("デフォルトダイスボット変更");
+      console.log(`[Debug Config] データ変更検知: ダイスボットが ${_defaultDiceBot} から ${this._defaultDiceBot} に変わりました`);
     }
 
     if (_roomVolume !== this._roomVolume) {
       if (this.jukebox) this.jukebox.setNewVolume();
-      console.log("全体ボリューム変更（Config経由）");
     }
   }
 }

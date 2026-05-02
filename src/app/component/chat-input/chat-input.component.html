@@ -20,8 +20,14 @@
         </ng-option>
       </ng-select>
       
-      <ng-select class="ud-select is-caret" style="width: 15em; margin-left: 4px;" (change)="loadDiceBot($event)" [(ngModel)]="gameType"
+      <!-- <ng-select class="ud-select is-caret" style="width: 15em; margin-left: 4px;" (change)="loadDiceBot($event)" [(ngModel)]="gameType"
         [ngModelOptions]="{standalone: true}" [clearable]="false" placeholder="システムを検索...">
+        <ng-option *ngFor="let diceBotInfo of diceBotInfos" [value]="diceBotInfo.id">{{diceBotInfo.name}}</ng-option>
+      </ng-select> -->
+      <ng-select class="ud-select is-caret" style="width: 15em; margin-left:.1em;" 
+        (change)="onChangeGameType($event)" 
+        [(ngModel)]="gameType"
+        [ngModelOptions]="{standalone: true}" [clearable]="false">
         <ng-option *ngFor="let diceBotInfo of diceBotInfos" [value]="diceBotInfo.id">{{diceBotInfo.name}}</ng-option>
       </ng-select>
       

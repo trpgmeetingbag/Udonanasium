@@ -91,3 +91,18 @@
 <ng-container *ngIf="isEmpty">
   <div style="font-size: 12px;">※テーブルが１つも作成されていません。「新しいテーブルを作る」から新しいテーブルを作成することができます。</div>
 </ng-container>
+<div>
+  <hr/>
+  標準のダイスボット(部屋接続時に選択されるダイスボットになります)。<br>
+  <span style="font-size: 11px;">※テーブル毎の設定ではなく部屋全体の設定です。</span>
+  <div style="margin-top: 4px;">
+    <!-- ▼ 最後に appendTo="body" を追加 -->
+<!-- ▼ [(ngModel)] を [ngModel] と (change) に分離する -->
+    <ng-select class="ud-select is-caret" style="width: 15em; margin-left:.1em;" 
+      [ngModel]="defaultDiceBot"
+      (change)="onChangeDefaultDiceBot($event)"
+      [ngModelOptions]="{standalone: true}" [clearable]="false" appendTo="body">
+      <ng-option *ngFor="let diceBotInfo of diceBotInfos" [value]="diceBotInfo.id">{{diceBotInfo.name}}</ng-option>
+    </ng-select>
+  </div>
+</div>

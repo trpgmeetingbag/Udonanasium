@@ -16,6 +16,8 @@ import { ImageTagList } from '@udonarium/image-tag-list';
 import { ChatTab } from '@udonarium/chat-tab';
 import { saveAs } from 'file-saver';
 
+import { Config } from '@udonarium/config';
+
 import Beautify from 'vkbeautify';
 
 type UpdateCallback = (percent: number) => void;
@@ -34,16 +36,21 @@ export class SaveDataService {
     return SaveDataService.queue.add((resolve, reject) => resolve(this._saveRoomAsync(fileName, updateCallback)));
   }
 
-  private _saveRoomAsync(fileName: string = 'ルームデータ', updateCallback?: UpdateCallback): Promise<void> {
+private _saveRoomAsync(fileName: string = 'ルームデータ', updateCallback?: UpdateCallback): Promise<void> {
     let files: File[] = [];
     let roomXml = this.convertToXml(new Room());
     let chatXml = this.convertToXml(ChatTabList.instance);
+    let configXml = this.convertToXml(Config.instance); // ▼ 追加：ConfigのXMLデータを生成
     let summarySetting = this.convertToXml(DataSummarySetting.instance);
+    
     files.push(new File([roomXml], 'data.xml', { type: 'text/plain' }));
     files.push(new File([chatXml], 'chat.xml', { type: 'text/plain' }));
+    files.push(new File([configXml], 'config.xml', { type: 'text/plain' })); // ▼ 追加：生成したデータを config.xml としてZIPに同梱
     files.push(new File([summarySetting], 'summary.xml', { type: 'text/plain' }));
 
 // === ↓ ここからリリィ版（PR#92）のロジックに変更 ↓ ===
+
+
     let images: ImageFile[] = [];
     images = images.concat(this.searchImageFiles(roomXml));
     images = images.concat(this.searchImageFiles(chatXml));
