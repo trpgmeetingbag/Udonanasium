@@ -1,4 +1,4 @@
-import { Component, Input, ElementRef, AfterViewInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, Input, ElementRef, AfterViewInit, OnDestroy, ViewChild, OnInit } from '@angular/core';
 import { ChatTab } from '@udonarium/chat-tab';
 import { ChatTabList } from '@udonarium/chat-tab-list';
 import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
@@ -6,6 +6,9 @@ import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
 // === ↓ 追加 ↓ ===
 import { ChatSettingsService } from 'service/chat-settings.service';
 // === ↑ 追加 ↑ ===
+
+import { EventSystem } from '@udonarium/core/system';
+import { ChatMessage } from '@udonarium/chat-message';
 
 @Component({
   selector: 'chat-tachie-img',
@@ -24,6 +27,41 @@ export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
     public chatSettingsService: ChatSettingsService // ← これを追加
   ) {}
 
+ngOnInit() {
+    EventSystem.register(this)
+      // ① 他人の発言用：届いた時点で既に属性（imagePos）が揃っている
+      .on('MESSAGE_ADDED', event => {
+        if (event.data.tabIdentifier !== this.chatTabidentifier) return;
+        let message = ObjectStore.instance.get<ChatMessage>(event.data.messageIdentifier);
+        this.checkAndUnhideTachie(message);
+      })
+      // ② 自分の発言用：発言後に setAttribute で imagePos が追加（更新）された瞬間に発火する
+      .on(`UPDATE_GAME_OBJECT/aliasName/${ChatMessage.aliasName}`, event => {
+        let message = ObjectStore.instance.get<ChatMessage>(event.data.identifier);
+        // このチャットタブのメッセージが更新された場合のみ処理
+        if (message && message.tabIdentifier === this.chatTabidentifier) {
+          this.checkAndUnhideTachie(message);
+        }
+      });
+  }
+
+  // ▼▼▼ 追加：表示復活ロジックを共通化して切り出し ▼▼▼
+  private checkAndUnhideTachie(message: ChatMessage | null) {
+    if (!message) return;
+    
+    // 発言に紐づく立ち絵ポジション（imagePos）を取得
+    let posStr = message.getAttribute('imagePos');
+    if (posStr != null) {
+      let pos = parseInt(posStr as string, 10);
+      if (pos >= 0 && pos < 12) {
+        // 新しく喋ったキャラクターのポジションなら、ローカルの非表示フラグを下ろす
+        if (this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier]) {
+          this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier][pos] = false;
+        }
+      }
+    }
+  }
+
   // 画面描画後、真のギロチン（scrollable-panel）から脱出し、大枠（draggable-panel）の直下へお引越しします
   ngAfterViewInit() {
     setTimeout(() => {
@@ -36,6 +74,7 @@ export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
 
   // ウィンドウが閉じた時は、お引越し先からレイヤーを綺麗にお掃除します
   ngOnDestroy() {
+    EventSystem.unregister(this); // ▼ 追加：イベントの監視を解除
     if (this.layerRef && this.layerRef.nativeElement.parentElement) {
       this.layerRef.nativeElement.parentElement.removeChild(this.layerRef.nativeElement);
     }
@@ -124,6 +163,17 @@ export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
     const currentState = this.isPosHidden(pos);
     this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier][pos] = !currentState;
   }
+
+  // tachieClick(pos: number) {
+  //   if (this.chatTab && this.chatTab.imageIdentifier) {
+  //     // 現在の配列をコピー
+  //     let newIdentifiers = this.chatTab.imageIdentifier.slice();
+  //     // クリックされた場所を「空白（半角スペース）」で上書きして消す
+  //     newIdentifiers[pos] = ' '; 
+  //     // チャットタブのデータとして適用
+  //     this.chatTab.imageIdentifier = newIdentifiers;
+  //   }
+  // }
 
   // (※もし以前の実装で getImageUrl 内で chatTab の非表示状態を参照していた場合は、
   // そこも pure な画像取得だけに留めるようにします)
