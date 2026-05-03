@@ -39,6 +39,7 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   // ▼ Config を参照するためのゲッター
   get config(): Config { return Config.instance; }
   
+  private _localGameType: string = '';
 
   // get gameType(): string { 
   //   // 個人の設定(_gameType)があればそれを、なければ部屋の共通設定(config)を返す
@@ -58,7 +59,16 @@ export class ChatInputComponent implements OnInit, OnDestroy {
   // }
   // 以前の get gameType / set gameType を以下のシンプルなものに差し替えます
 get gameType(): string { 
-    return this._gameType || 'DiceBot'; 
+
+    if (this._localGameType) return this._localGameType;
+    
+    // ② コマが固有のダイスボット（DiceBot以外）を持っていれば、それを優先
+    if (this._gameType && this._gameType !== 'DiceBot') {
+      return this._gameType;
+    }
+    
+    // ③ どちらもなければ、部屋の標準設定を返す
+    return this.config ? this.config.defaultDiceBot : 'DiceBot';
   }
   
   set gameType(gameType: string) { 
@@ -253,29 +263,67 @@ private checkAndApplyDefaultDiceBot() {
   ) { }
 
   ngOnInit(): void {
-    this.checkAndApplyDefaultDiceBot();
-    
-    // ▼▼▼ 追加：起動時に、部屋の標準ダイスボットを自分のチャット欄にセットする ▼▼▼
-    // if (this.config && this.config.defaultDiceBot) {
-    //   // 初回ロード時（空っぽ、またはDiceBotのまま）なら部屋の設定を適用する
-    //   if (!this._gameType || this._gameType === 'DiceBot') {
-    //     this.gameType = this.config.defaultDiceBot;
-    //   }
-    // }
-    // ▲▲▲ 追加ここまで ▲▲▲
+//     this.checkAndApplyDefaultDiceBot();
 
-    DiceBot.loadGameSystemAsync(this.gameType);
+
+//     DiceBot.loadGameSystemAsync(this.gameType);
+//     EventSystem.register(this)
+//     // ▼▼▼ 追加：誰かが標準ダイスボットを変更した通知を受け取る ▼▼▼
+//       .on<string>('CHANGE_DEFAULT_DICEBOT', event => {
+//         if (this.config) {
+//           // 受け取ったダイスボット名を自分のローカルのConfigにも反映させる
+//           this.config.defaultDiceBot = event.data;
+//         }
+//         // 画面の表示を強制的に最新に更新する
+//         this.changeDetector.markForCheck();
+//       })
+// .on('UPDATE_GAME_OBJECT', event => {
+
+//        if (event.data.aliasName === 'config') {
+//           setTimeout(() => {
+//              this.changeDetector.markForCheck();
+//           }, 0);
+//         }
+//       })
+
+      DiceBot.loadGameSystemAsync(this.gameType);
+
     EventSystem.register(this)
-.on('UPDATE_GAME_OBJECT', event => {
-        // ▼ 変更箇所： 'Config' という aliasName が更新されたかどうかの判定に厳密化
+      // ① 誰かがテーブル設定で変更した時に飛んでくる通信（前回実装済み）
+      .on<string>('CHANGE_DEFAULT_DICEBOT', event => {
+        if (this.config) {
+          this.config.defaultDiceBot = event.data;
+        }
+        this.changeDetector.markForCheck();
+      })
+      // ② ZIP読み込み時、および【新規入室時にホストからConfigを受信した瞬間】
+      .on('UPDATE_GAME_OBJECT', event => {
         if (event.data.aliasName === 'config') {
-          // 0ミリ秒待つことで、Configが完全に再生成されてObjectStoreに登録されるのを待つ
           setTimeout(() => {
-             this.checkAndApplyDefaultDiceBot();
-             this.changeDetector.markForCheck(); // 画面の表示を更新
+             // 画面を再描画して最新のConfigを反映
+             this.changeDetector.markForCheck();
+             // ▼ 追加：同期されたダイスボットのシステムを裏読み込みしておく
+             if (this.config && this.config.defaultDiceBot) {
+               DiceBot.loadGameSystemAsync(this.config.defaultDiceBot);
+             }
           }, 0);
         }
       })
+      // ▼▼▼ 追加：③ 自分が新しく部屋に入室し、盤面の同期（ダウンロード）が完了した瞬間 ▼▼▼
+      // .on('SYNCHRONIZE_FILE_LIST', event => {
+      //   // SYNCHRONIZE_FILE_LIST は、入室時のデータ受信ラッシュが落ち着いたタイミングで呼ばれる
+      //   // ユドナリウム特有の初期化完了シグナルのようなものです。
+      //   // この時点で Config にはホストから貰った最新の defaultDiceBot が入っている。
+      //   console.log(`[Debug Config] this.config.defaultDiceBot:`, this.config.defaultDiceBot);
+      //   setTimeout(() => {
+      //     if (this.config && this.config.defaultDiceBot) {
+      //        // 画面の再描画をかけることで、ゲッター（gameType）が最新のConfigを読み取る
+      //        this.changeDetector.markForCheck();
+      //        // システムも裏で読み込んでおく
+      //        DiceBot.loadGameSystemAsync(this.config.defaultDiceBot);
+      //     }
+      //   }, 500); // 念のため、他の初期化処理と競合しないよう0.5秒だけ待つ
+      // })
       .on('MESSAGE_ADDED', event => {
         if (event.data.tabIdentifier !== this.chatTabidentifier) return;
         let message = ObjectStore.instance.get<ChatMessage>(event.data.messageIdentifier);
