@@ -170,6 +170,14 @@
   </ng-template>
   <ng-template #elseBlock>
     <ng-container [ngSwitch]="dataElm.type">
+      <!-- ▼ 既存の 'note' などのスイッチケースの下にこれを追加 ▼ -->
+      <ng-container *ngSwitchCase="'check'">
+        <div class="tag">{{dataElm.name}}</div>
+        <div class="value">
+          <input *ngIf="dataElm.value != 0" type="checkbox" checked (click)="dataElm.value = 0"/>
+          <input *ngIf="dataElm.value == 0" type="checkbox" (click)="dataElm.value = 1"/>
+        </div>
+      </ng-container>
 
       <!-- <ng-container *ngSwitchCase="'note'">
         <div class="section">
@@ -205,7 +213,20 @@
           </div>
         </div>
       </ng-container>
-
+      <ng-container *ngSwitchCase="'markdown'">
+        <div class="section">
+          <div>{{dataElm.name}} 
+          </div>
+          <div class="note" style="position: relative;">
+            <div class="is-fill">
+              <span class="textarea-markdown" 
+              [innerHTML]="escapeHtmlMarkDown(dataElm.value,dataElm.Identifer)"></span>
+            </div>
+             <div class="textarea-spacer" 
+             [innerHTML]="escapeHtmlMarkDown(dataElm.value,dataElm.Identifer)"></div>
+          </div>
+        </div>
+      </ng-container>
       <ng-container *ngSwitchCase="'numberResource'">
         <div class="tag">{{dataElm.name}}</div>
         <div class="value">

@@ -1,6 +1,12 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, OnDestroy, OnInit } from '@angular/core';
 import { EventSystem } from '@udonarium/core/system';
 import { DataElement } from '@udonarium/data-element';
+import { HostListener } from '@angular/core'; // ← 追加
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser'; // ← 追加
+import { ObjectStore } from '@udonarium/core/synchronize-object/object-store'; // (既にあれば不要)
+// ▼ MarkDownクラスをインポート（パスは環境に合わせてください）
+import { MarkDown } from '@udonarium/mark-down'; // (エイリアスがある場合)
+// import { MarkDown } from 'class/mark-down'; // (相対パスの場合)
 
 @Component({
   selector: 'game-data-element, [game-data-element]',
@@ -29,7 +35,8 @@ export class GameDataElementComponent implements OnInit, OnChanges, OnDestroy {
   private updateTimer: NodeJS.Timeout = null;
 
   constructor(
-    private changeDetector: ChangeDetectorRef
+    private changeDetector: ChangeDetectorRef,
+    private domSanitizer: DomSanitizer
   ) { }
 
   ngOnInit() {
@@ -127,4 +134,41 @@ export class GameDataElementComponent implements OnInit, OnChanges, OnDestroy {
     let box = <HTMLInputElement>document.getElementById(dataElmIdentifier);
     if (box) box.checked = true;
   }
+
+  // ▼▼ ここから追加 ▼▼
+get markdown(): MarkDown {
+    let md = ObjectStore.instance.get<MarkDown>('markdwon');
+    // もしデータベースに見つからなければ、新しく作って初期化（登録）する
+    if (!md) {
+      md = new MarkDown('markdwon');
+      md.initialize();
+    }
+    return md;
+  }
+
+escapeHtmlMarkDown(text: any, baseId: string): SafeHtml {
+    if (!this.markdown) return text;
+    
+    // ▼ 追加：textが数値(number)やnullだった場合、強制的に文字列(string)に変換してクラッシュを防ぐ
+    let strText = (text == null) ? '' : String(text);
+
+    // text の代わりに strText を渡すように変更
+    let textCheckBox = this.markdown.markDownCheckBox(strText, baseId);
+    let textTable =  this.markdown.markDownTable(textCheckBox);
+    return this.domSanitizer.bypassSecurityTrustHtml("<div>" + textTable + "</div>");
+  }
+
+  @HostListener('click', ['$event'])
+  click(event: any) {
+    if (this.markdown && event.target.id && event.target.id.includes('_mark_')) {
+      this.markdown.changeMarkDownCheckBox(event.target.id, event.timeStamp);
+    }
+  }
+
+  isEditMarkDown(dataElmIdentifier: string) {
+    let box = <HTMLInputElement>document.getElementById(dataElmIdentifier);
+    if (!box) return false;
+    return box.checked;
+  }
+  // ▲▲ ここまで追加 ▲▲
 }

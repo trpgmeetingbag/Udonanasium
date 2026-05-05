@@ -18,6 +18,10 @@ import { GameObjectInventoryService } from 'service/game-object-inventory.servic
 import { PointerDeviceService } from 'service/pointer-device.service';
 import { GameCharacter } from '@udonarium/game-character';
 
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser'; // ← 追加
+import { ObjectStore } from '@udonarium/core/synchronize-object/object-store'; // (既にあれば不要)
+import { MarkDown } from '@udonarium/mark-down'; // ← 追加
+
 @Component({
   selector: 'overview-panel',
   templateUrl: './overview-panel.component.html',
@@ -64,7 +68,8 @@ export class OverviewPanelComponent implements OnChanges, AfterViewInit, OnDestr
   constructor(
     private inventoryService: GameObjectInventoryService,
     private changeDetector: ChangeDetectorRef,
-    private pointerDeviceService: PointerDeviceService
+    private pointerDeviceService: PointerDeviceService,
+    private domSanitizer: DomSanitizer
   ) { }
 
   ngOnChanges(): void {
@@ -236,4 +241,34 @@ export class OverviewPanelComponent implements OnChanges, AfterViewInit, OnDestr
     let box = <HTMLInputElement>document.getElementById(dataElmIdentifier);
     if (box) box.checked = true;
   }
+  // ▼▼ ここから追加 ▼▼
+get markdown(): MarkDown {
+    let md = ObjectStore.instance.get<MarkDown>('markdwon');
+    // もしデータベースに見つからなければ、新しく作って初期化（登録）する
+    if (!md) {
+      md = new MarkDown('markdwon');
+      md.initialize();
+    }
+    return md;
+  }
+
+escapeHtmlMarkDown(text: any, baseId: string): SafeHtml {
+    if (!this.markdown) return text;
+    
+    // ▼ 追加：textが数値(number)やnullだった場合、強制的に文字列(string)に変換してクラッシュを防ぐ
+    let strText = (text == null) ? '' : String(text);
+
+    // text の代わりに strText を渡すように変更
+    let textCheckBox = this.markdown.markDownCheckBox(strText, baseId);
+    let textTable =  this.markdown.markDownTable(textCheckBox);
+    return this.domSanitizer.bypassSecurityTrustHtml("<div>" + textTable + "</div>");
+  }
+
+  @HostListener('click', ['$event'])
+  click(event: any) {
+    if (this.markdown && event.target.id && event.target.id.includes('_mark_')) {
+      this.markdown.changeMarkDownCheckBox(event.target.id, event.timeStamp);
+    }
+  }
+  // ▲▲ ここまで追加 ▲▲
 }
