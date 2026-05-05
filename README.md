@@ -48,6 +48,11 @@
 ユドナリウムを改造して作ったものなので、ユドナリウムと全く同じ方法で設置できます。
 参考までに、新SkyWay対応ユドナリウム導入の備忘録を作りました。[備忘録][note]
 
+## 連絡先
+
+なにか要望等あればTwitterまで。
+https://x.com/nouminhukuro
+
 ## License
 
 [MIT License](https://github.com/TK11235/udonarium/blob/master/LICENSE)
