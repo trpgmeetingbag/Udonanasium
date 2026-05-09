@@ -263,6 +263,7 @@ private checkAndApplyDefaultDiceBot() {
   ) { }
 
   ngOnInit(): void {
+    (window as any).$chatInput = this; // ★ テスト用に一時追加
 //     this.checkAndApplyDefaultDiceBot();
 
 
@@ -464,6 +465,7 @@ private checkAndApplyDefaultDiceBot() {
        selectedTachieId = this.myPeer.imageIdentifier;
     }
 
+// ▼ コマンド本体の送信（変更なし）
     this.chat.emit({ 
       text: this.text, 
       gameType: this.gameType, 
@@ -473,28 +475,30 @@ private checkAndApplyDefaultDiceBot() {
       tachieId: selectedTachieId 
     });
 
-
-
+    // ▼ 修正：setTimeoutを完全に削除し、同期的に結果を出力する
     if (statusChangeResult && character) {
-       setTimeout(() => {
-          let chatTab = ObjectStore.instance.get<ChatTab>(this.chatTabidentifier);
-          if (chatTab) {
-             let msg = new ChatMessage();
-             msg.from = 'System';
-             msg.to = this.sendTo;
-             msg.name = character.name;
-             msg.tag = 'system';
-             msg.value = statusChangeResult; 
-             msg.setAttribute('messColor', this.chatColor);
-             msg.setAttribute('originFrom', this.myPeer.identifier);
-             msg.setAttribute('fixd', 'false'); 
-             msg.setAttribute('timestamp', this.chatMessageService.getTime() + 1);
-             msg.initialize();
-             chatTab.appendChild(msg);
-             EventSystem.trigger('MESSAGE_ADDED', { tabIdentifier: chatTab.identifier, messageIdentifier: msg.identifier });
-          }
-       }, 50); 
+       let chatTab = ObjectStore.instance.get<ChatTab>(this.chatTabidentifier);
+       if (chatTab) {
+          let msg = new ChatMessage();
+          msg.from = 'System';
+          msg.to = this.sendTo;
+          msg.name = character.name;
+          msg.tag = 'system';
+          msg.value = statusChangeResult; 
+          msg.setAttribute('messColor', this.chatColor);
+          msg.setAttribute('originFrom', this.myPeer.identifier);
+          msg.setAttribute('fixd', 'false'); 
+          
+          // ▼ タイムスタンプは「本体」と確実に連番になるよう、最新時刻を取得
+          msg.setAttribute('timestamp', this.chatMessageService.calcTimeStamp(chatTab));
+          
+          msg.initialize();
+          chatTab.appendChild(msg);
+          // 同期的に MESSAGE_ADDED をトリガーし、同一のアップデートサイクルに乗せる
+          EventSystem.trigger('MESSAGE_ADDED', { tabIdentifier: chatTab.identifier, messageIdentifier: msg.identifier });
+       }
     }
+
 
     // ▼ ここから追加：チャット末尾のカットイン発動判定
     const cutInLauncher = ObjectStore.instance.get<CutInLauncher>('CutInLauncher');

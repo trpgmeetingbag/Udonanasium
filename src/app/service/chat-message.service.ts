@@ -537,7 +537,7 @@ sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string
     return -1;
   }
 
-  private calcTimeStamp(chatTab: ChatTab): number {
+  public calcTimeStamp(chatTab: ChatTab): number {
     let now = this.getTime();
     let latest = chatTab.latestTimeStamp;
     return now <= latest ? latest + 1 : now;

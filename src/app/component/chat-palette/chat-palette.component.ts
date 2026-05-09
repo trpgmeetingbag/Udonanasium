@@ -96,17 +96,21 @@ export class ChatPaletteComponent implements OnInit, OnDestroy {
     this.updatePanelTitle();
   }
 
-  selectPalette(line: string) {
-    this.text = line;
+selectPalette(line: string) {
+    // ▼ 修正: \n を実際の改行に変換する
+    this.text = line.replace(/\\n/g, '\n');
   }
 
   clickPalette(line: string) {
-    if (this.doubleClickTimer && this.text === line) {
+    // ▼ 修正: \n を実際の改行に変換した文字をベースに判定を行う
+    let multiLine = line.replace(/\\n/g, '\n');
+    
+    if (this.doubleClickTimer && this.text === multiLine) {
       clearTimeout(this.doubleClickTimer);
       this.doubleClickTimer = null;
       this.chatInputComponent.sendChat(null);
     } else {
-      this.text = line;
+      this.text = multiLine;
       this.doubleClickTimer = setTimeout(() => { this.doubleClickTimer = null }, 400);
     }
   }
