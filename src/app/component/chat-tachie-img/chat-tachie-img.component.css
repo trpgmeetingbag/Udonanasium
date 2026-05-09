@@ -1,32 +1,40 @@
-/* お引越し後のレイヤー設定 */
-.tachie-layer {
-  position: absolute;
-  top: 0; /* お引越し先（draggable-panel）の一番上（タイトルバーの上辺）に合わせる */
-  left: 0;
-  width: 100%;
-  height: 0;
-  z-index: 100;
-  pointer-events: none;
+.message-setting {
+  background-color: transparent;
+  color: #444; 
+  border: solid 1px #555;
+  padding: 2px 4px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.message-setting:hover {
+  background-color: #888;
+  color: #eee;
+  border: solid 1px #555;
+}
+
+.small-font {
+  font-size: 12px;
+  vertical-align: middle;
 }
 
 .tachie-image-box {
-  position: relative;
-  width: 100%;
-  height: 0;
-  overflow: visible;
+  /* リリィ版ではインラインスタイルとTSで制御するため空で正常です */
 }
 
 .tachie-image {
   position: absolute;
-  bottom: 0; /* レイヤーの底面に画像の足を合わせる＝ウィンドウの上にニョキッと生える！ */
-  transform: translateX(-50%);
-  pointer-events: auto;
-  cursor: pointer;
-  object-fit: contain;
-  filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.5));
+  height: 250px;
+  padding: 0;
   vertical-align: bottom;
-  /* --- START: 透明度が変化する際のアニメーションを滑らかにする --- */
-  transition: left 0.3s ease, height 0.3s ease, opacity 0.3s ease;
-/* --- END --- */
-  /* transition: left 0.3s ease, height 0.3s ease; */
+  z-index: 1;
 }
+
+.pos00{}
+.pos01{}
+.pos02{}
+.pos03{}
+
+.character-image-box {}
+.character-image {}
+.component {}

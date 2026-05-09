@@ -1,4 +1,5 @@
 import { ComponentRef, Injectable, OnChanges, ViewContainerRef } from '@angular/core';
+import { ChatTab } from '@udonarium/chat-tab'; // ★追加：チャットタブの型定義をインポート
 
 declare var Type: FunctionConstructor;
 interface Type<T> extends Function {
@@ -25,6 +26,9 @@ export class PanelService {
   top: number = 0;
   width: number = 100;
   height: number = 100;
+
+  // ★追加：リリィ版に準拠し、パネル自身がチャットタブの情報を保持できるようにする
+  chatTab: ChatTab = null;
 
   scrollablePanel: HTMLDivElement = null;
 

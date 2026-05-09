@@ -9,20 +9,62 @@ import { Network } from './core/system';
 export class ChatTab extends ObjectNode implements InnerXml {
   @SyncVar() name: string = 'タブ';
 
-// ーーーここから追加（リリィ互換の立ち絵データ枠）ーーー
+  // === 既存の成功済統合機能（チャット簡易表示の個別化など）を保護 ===
   @SyncVar() tachieDispFlag: boolean = true;
   @SyncVar() chatSimpleDispFlag: boolean = false;
-  // XML保存時に枠が消滅するのを防ぐため、リリィに倣って半角スペースを初期値にします
-  @SyncVar() imageIdentifier: string[] = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '];
+
+  // === ↓ ここからリリィ版 立ち絵データ管理ロジック（完全再現） ↓ ===
+  @SyncVar() pos_num = -1;
+  @SyncVar() imageIdentifier: string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'];
+  @SyncVar() imageCharactorName: string[] = ['#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9', '#10', '#11'];
+  @SyncVar() imageIdentifierZpos: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  @SyncVar() count = 0;
+  @SyncVar() imageIdentifierDummy = 'test'; // 通信開始ために使わなくても書かなきゃだめっぽいロジックをそのまま継承
+
+  imageDispFlag: boolean[] = [true, true, true, true, true, true, true, true, true, true, true, true];
+
+  tachieReset() {
+    this.imageIdentifier = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'];
+    this.imageCharactorName = ['#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9', '#10', '#11'];
+    this.imageIdentifierZpos = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    this.imageIdentifierDummy = 'test';
+  }
+
+  get imageZposList(): number[] {
+    let ret: number[] = this.imageIdentifierZpos.slice();
+    return ret;
+  }
+
+  getImageCharactorPos(name: string) {
+    for (let i = 0; i < this.imageCharactorName.length; i++) {
+      if (name == this.imageCharactorName[i]) {
+        return i;
+      }
+    }
+    return -1;
+  }
 
   tachiePosHide(pos: number) {
-    if (pos >= 0 && pos < 12) {
-      let newIdentifiers = this.imageIdentifier.slice();
-      newIdentifiers[pos] = ' '; // 消す時も空文字ではなく半角スペースで上書きします
-      this.imageIdentifier = newIdentifiers;
+    this.imageDispFlag[pos] = false;
+  }
+
+  tachiePosIsDisp(pos: number): boolean {
+    return this.imageDispFlag[pos];
+  }
+
+  tachieZindex(toppos: number): number {
+    let index = this.imageIdentifierZpos.indexOf(Number(toppos));
+    return index;
+  }
+
+  replaceTachieZindex(toppos: number) {
+    let index = this.imageIdentifierZpos.indexOf(Number(toppos));
+    if (index >= 0) {
+      this.imageIdentifierZpos.splice(index, 1);
+      this.imageIdentifierZpos.push(Number(toppos));
     }
   }
-  // ーーー追加ここまでーーー
+  // === ↑ リリィ版ロジック ここまで ↑ ===
 
   get chatMessages(): ChatMessage[] { return <ChatMessage[]>this.children; }
 
@@ -40,6 +82,18 @@ export class ChatTab extends ObjectNode implements InnerXml {
     super.onChildAdded(child);
     if (child.parent === this && child instanceof ChatMessage && child.isDisplayable) {
       this._unreadLength++;
+
+      // リリィ版: マウスクリック非表示からの復帰ロジック
+      let to = child.getAttribute('to');
+      if (to != null && to !== '') {
+        // 秘話時に立ち絵の更新をかけない(処理なし)
+      } else {
+        let imagePosStr = child.getAttribute('imagePos');
+        if (imagePosStr != null && imagePosStr !== '') {
+          this.imageDispFlag[Number(imagePosStr)] = true;
+        }
+      }
+
       EventSystem.trigger('MESSAGE_ADDED', { tabIdentifier: this.identifier, messageIdentifier: child.identifier });
     }
   }
@@ -51,11 +105,40 @@ export class ChatTab extends ObjectNode implements InnerXml {
     for (let key in message) {
       if (key === 'identifier') continue;
       if (key === 'tabIdentifier') continue;
+
       if (key === 'text') {
         chat.value = message[key];
         continue;
       }
       if (message[key] == null || message[key] === '') continue;
+
+      // リリィ版: 立ち絵のPOS計算およびZ-Index更新ロジック
+      if (key === 'imagePos') {
+        if (message.to != null && message.to !== '') { continue; } // 秘話時に立ち絵の更新をかけない
+        this.pos_num = message[key];
+        if (0 <= this.pos_num && this.pos_num < this.imageIdentifier.length) {
+          let oldpos = this.getImageCharactorPos(message.name);
+          if (oldpos >= 0) { // 同名キャラの古い位置を消去
+            this.imageIdentifier[oldpos] = '';
+            this.imageCharactorName[oldpos] = '';
+            this.imageDispFlag[oldpos] = false;
+          }
+
+          if (message.imageIdentifier == '') {
+            // 事前に古い立ち絵は消す処理をしているため処理なし
+          } else {
+            this.imageIdentifier[this.pos_num] = message.imageIdentifier;
+            this.imageCharactorName[this.pos_num] = message.name;
+            this.replaceTachieZindex(this.pos_num);
+            this.imageDispFlag[this.pos_num] = true;
+
+            chat.setAttribute(key, message[key]);
+          }
+          this.imageIdentifierDummy = message.imageIdentifier; // 同期強制のためのダミー更新
+        }
+        continue;
+      }
+
       chat.setAttribute(key, message[key]);
     }
     chat.initialize();
@@ -80,8 +163,8 @@ export class ChatTab extends ObjectNode implements InnerXml {
   parseInnerXml(element: Element) {
     return super.parseInnerXml(element);
   };
-  // === ↓ ここから追加（HTMLログ出力用メソッド） ↓ ===
-// messageHtml メソッドの中身を以下に差し替え
+
+  // === ↓ 既存のHTMLログ出力用メソッド（維持） ↓ ===
   messageHtml( isTime: boolean , tabName: string, message: ChatMessage ): string{
     let str = '';
     if ( message ) {
@@ -92,7 +175,6 @@ export class ChatTab extends ObjectNode implements InnerXml {
       }
       str += '<font color=\'';
       
-      // 修正箇所: getAttribute を使用
       let messColor = message.getAttribute('messColor'); 
       if ( messColor ) str += messColor.toLowerCase();
       
@@ -111,11 +193,9 @@ export class ChatTab extends ObjectNode implements InnerXml {
     return str;
   }
 
-  // messageHtmlCoc メソッドの中身も同様に修正
   messageHtmlCoc( tabName: string, message: ChatMessage ): string{
     let str = '';
     if ( message ) {
-      // 修正箇所: getAttribute を使用
       let messColor = message.getAttribute('messColor');
       str += "    <p style=\"color:" + (messColor ? messColor.toLowerCase() : '#000000') +";\">\n";
       str += "      <span> [" + tabName + "]</span>\n";
@@ -147,7 +227,7 @@ export class ChatTab extends ObjectNode implements InnerXml {
     for (let mess of this.chatMessages ) {
       let to = mess.to;
       let from = mess.from;
-      let myId = Network.peer.userId; // 修正済
+      let myId = Network.peer.userId;
       if ( to && ( to != myId) && ( from != myId) ) continue;
       main += this.messageHtml( true , '' , mess );
     }
@@ -162,12 +242,10 @@ export class ChatTab extends ObjectNode implements InnerXml {
     for (let mess of this.chatMessages ) {
       let to = mess.to;
       let from = mess.from;
-      let myId = Network.peer.userId; // 修正済
+      let myId = Network.peer.userId;
       if ( to && ( to != myId) && ( from != myId) ) continue;
       main += this.messageHtmlCoc( this.escapeHtml( this.name ) , mess );
     }
     return head + main + last;
   }
-  // === ↑ ここまで追加 ↑ ===
 }
-

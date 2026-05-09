@@ -49,7 +49,10 @@ export class UIPanelComponent implements OnInit {
   private preHeight: number = 100;
 
   private isFullScreen: boolean = false;
-  isFolded: boolean = false; // 追加: 折りたたみ状態フラグ
+  isFolded: boolean = false; // 既存機能: 折りたたみ状態フラグを維持
+
+  // ★追加：リリィ版準拠 マウスホバーによる立ち絵表示制御フラグ
+  tachieDispByMouse: boolean = true;
 
   get isPointerDragging(): boolean { return this.pointerDeviceService.isDragging || this.pointerDeviceService.isTablePickGesture; }
 
@@ -60,6 +63,11 @@ export class UIPanelComponent implements OnInit {
 
   ngOnInit() {
     this.panelService.scrollablePanel = this.scrollablePanel.nativeElement;
+  }
+
+  // ★追加：リリィ版準拠 ウィンドウへのマウスホバー判定
+  showTachie(flag: boolean) {
+    this.tachieDispByMouse = flag;
   }
 
   toggleFullScreen() {

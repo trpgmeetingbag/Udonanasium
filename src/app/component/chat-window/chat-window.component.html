@@ -1,8 +1,7 @@
 <div class="component">
 
   <div class="log">
-    <!-- 独自拡張の立ち絵コンポーネントを log の中に移動 -->
-    <chat-tachie-img *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie-img>
+    <!-- ▼ 削除: 独自拡張の立ち絵コンポーネントは ui-panel 側に移動したため完全削除 ▼ -->
     
     <chat-tab *ngIf="chatTab" [chatTab]="chatTab" (onAddMessage)="scrollToBottom()"></chat-tab>
     <div *ngIf="!chatTab">※チャットタブの内容が更新されました。チャットタブを選択しなおすか、このチャットウィンドウを開きなおしてください。</div>
@@ -10,7 +9,7 @@
   
   <div class="sticky-bottom">
     <form>
-      <!-- 古い立ち絵コンポーネント（不要であれば後で削除可能です） -->
+      <!-- 古い設定用コンポーネント（不要であれば後で削除可能ですが今は維持します） -->
       <chat-tachie *ngIf="chatTabidentifier" [chatTabidentifier]="chatTabidentifier"></chat-tachie>
 
       <div class="chat-tab">
