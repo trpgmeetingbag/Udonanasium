@@ -88,4 +88,17 @@ export class ChatTachieComponent {
     return 0;
   }
   // === ↑ ここまで追加・修正 ↑ ===
+
+  // 60行目付近（tachieAreaHeight の下あたり）に追加
+
+  // 4. ローカルの簡易表示フラグを取得・設定する
+  get isSimpleMode(): boolean {
+    // 未設定の場合は false（通常表示）とする
+    return !!this.chatSettingsService.isSimpleModeMap[this.chatTabidentifier];
+  }
+
+  set isSimpleMode(value: boolean) {
+    this.chatSettingsService.isSimpleModeMap[this.chatTabidentifier] = value;
+    this.chatSettingsService.settingsChanged.emit(); // 画面更新を通知
+  }
 }

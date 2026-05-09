@@ -2,6 +2,7 @@ import { ChatPalette } from './chat-palette';
 import { SyncObject, SyncVar } from './core/synchronize-object/decorator';
 import { DataElement } from './data-element';
 import { TabletopObject } from './tabletop-object';
+import { ObjectStore } from './core/synchronize-object/object-store';
 
 @SyncObject('character')
 export class GameCharacter extends TabletopObject {
@@ -30,12 +31,57 @@ export class GameCharacter extends TabletopObject {
   get name(): string { return this.getCommonValue('name', ''); }
   get size(): number { return this.getCommonValue('size', 1); }
 
+  
+  // ▼▼▼ 追加：セッターを定義して外部からの書き換えを許可する ▼▼▼
+  set name(value: string) { this.setCommonValue('name', value); }
+
   get chatPalette(): ChatPalette {
     for (let child of this.children) {
       if (child instanceof ChatPalette) return child;
     }
     return null;
   }
+
+  // ▼▼▼ リリィ互換：複製時に名前の末尾に連番（_2, _3...）を自動付与する ▼▼▼
+  clone(): this {
+    let cloneObject = super.clone();
+
+    let objectname: string;
+    let reg = new RegExp('^(.*)_([0-9]+)$');
+    let res = cloneObject.name.match(reg);
+
+    let cloneNumber: number = 0;
+    // 既に「名前_数値」の形式なら、その数値をベースにする
+    if (res != null && res.length == 3) {
+      objectname = res[1];
+      cloneNumber = parseInt(res[2]) + 1;
+    } else {
+      objectname = cloneObject.name;
+      cloneNumber = 2; // 初回複製時は _2 からスタート
+    }
+
+    // 盤面全体のキャラクターを取得して、最も大きい連番を探す
+    let list = ObjectStore.instance.getObjects(GameCharacter);
+    for (let character of list) {
+      // 墓場（削除済み）にあるコマは連番のカウントから除外する
+      if (character.location.name == 'graveyard') continue;
+
+      res = character.name.match(reg);
+      if (res != null && res.length == 3 && res[1] == objectname) {
+        let numberChk = parseInt(res[2]) + 1;
+        if (cloneNumber <= numberChk) {
+          cloneNumber = numberChk;
+        }
+      }
+    }
+
+    // 新しい名前をセットして同期
+    cloneObject.name = objectname + '_' + cloneNumber;
+    cloneObject.update();
+
+    return cloneObject;
+  }
+  // ▲▲▲ 追加ここまで ▲▲▲
 
   static create(name: string, size: number, imageIdentifier: string): GameCharacter {
     let gameCharacter: GameCharacter = new GameCharacter();

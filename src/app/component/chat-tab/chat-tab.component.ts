@@ -100,10 +100,10 @@ Ctrl+マウス左ボタン+ドラッグ操作 : マウスカーソルの触れ�
 
   // START: リリィ互換 簡易表示用の高さ計算
   get minMessageHeight(): number {
-    if (this.chatTab && (this.chatTab as any).chatSimpleDispFlag) {
-      return 26;
-    }
-    return this.chatSettingsService.isSimpleMode ? 26 : 61;
+if (!this.chatTab) return 61;
+    // タブ本体に保存されたフラグ（互換性用）か、ローカルの個別設定フラグのどちらかがONなら簡易表示の高さ(26)にする
+    const isSimple = (this.chatTab as any).chatSimpleDispFlag || !!this.chatSettingsService.isSimpleModeMap[this.chatTab.identifier];
+    return isSimple ? 26 : 61;
   }
   // END
 

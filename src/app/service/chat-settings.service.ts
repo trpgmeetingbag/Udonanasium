@@ -12,9 +12,11 @@ export class ChatSettingsService {
   tachieDispMap: { [tabIdentifier: string]: boolean } = {}; // タブごとの表示状態（ローカル）
 
   // 内部変数とGetter/Setter（値が変わるたびに emit して通知する）
-  private _isSimpleMode: boolean = false;
-  get isSimpleMode(): boolean { return this._isSimpleMode; }
-  set isSimpleMode(value: boolean) { this._isSimpleMode = value; this.settingsChanged.emit(); }
+  // private _isSimpleMode: boolean = false;
+  // get isSimpleMode(): boolean { return this._isSimpleMode; }
+  // set isSimpleMode(value: boolean) { this._isSimpleMode = value; this.settingsChanged.emit(); }
+  // ▼ 新コード（追加）
+  isSimpleModeMap: { [tabIdentifier: string]: boolean } = {};
 
   private _showStandingPicInWindow: boolean = false;
   get showStandingPicInWindow(): boolean { return this._showStandingPicInWindow; }
