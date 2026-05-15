@@ -77,11 +77,25 @@
 
     <div>
       <form>
-        <textarea class="chat-input is-caret" placeholder="Enter:送信 Shift+Enter:改行 Ctrl+上下:履歴" [(ngModel)]="text"
+<!-- <textarea class="chat-input is-caret" placeholder="Enter:送信 Shift+Enter:改行 Ctrl+上下:履歴 Ctrl+左右:タブ切替" [(ngModel)]="text"
           [ngModelOptions]="{standalone: true}" (input)="onInput()" 
           (keydown.enter)="sendChat($any($event))"
           (keydown.control.arrowup)="moveHistory($any($event), -1)" 
           (keydown.control.arrowdown)="moveHistory($any($event), 1)"
+          (keydown.control.arrowleft)="tabSwitchAction($any($event), -1)" 
+          (keydown.control.arrowright)="tabSwitchAction($any($event), 1)"
+          #textArea></textarea> -->
+          <textarea class="chat-input is-caret" placeholder="Enter:送信 Shift+Enter:改行 Ctrl+上下:履歴 Ctrl+左右:タブ切替" [(ngModel)]="text"
+          [ngModelOptions]="{standalone: true}" (input)="onInput()" 
+          
+          (keydown.enter)="autoCompleteDoAction($any($event))"
+          (keydown.arrowup)="autoCompleteSwitchAction($any($event), -1)" 
+          (keydown.arrowdown)="autoCompleteSwitchAction($any($event), 1)"
+          
+          (keydown.control.arrowup)="moveHistory($any($event), -1)" 
+          (keydown.control.arrowdown)="moveHistory($any($event), 1)"
+          (keydown.control.arrowleft)="tabSwitchAction($any($event), -1)" 
+          (keydown.control.arrowright)="tabSwitchAction($any($event), 1)"
           #textArea></textarea>
           <button type="submit" (click)="sendChat(null)">SEND</button>
         <!-- <button type="submit" (click)="sendChat($any($event))">SEND</button> -->

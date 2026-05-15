@@ -23,6 +23,12 @@ export class DataSummarySetting extends GameObject implements InnerXml {
   @SyncVar() sortOrder: SortOrder = SortOrder.ASC;
   @SyncVar() dataTag: string = 'HP MP 敏捷度 生命力 精神力';
 
+
+  // ▼▼ これを追加 ▼▼
+  @SyncVar() sortTag2nd: string = '';
+  @SyncVar() sortOrder2nd: SortOrder = SortOrder.ASC;
+  // ▲▲ これを追加 ▲▲
+
   private _dataTag: string;
   private _dataTags: string[];
   get dataTags(): string[] {

@@ -45,6 +45,13 @@ export class GameObjectInventoryComponent implements OnInit, OnDestroy {
 
   get newLineDataElement(): DataElement { return this.inventoryService.newLineDataElement; }
 
+  // ▼▼ これを追加 ▼▼
+  get sortTag2nd(): string { return this.inventoryService.sortTag2nd; }
+  set sortTag2nd(sortTag: string) { this.inventoryService.sortTag2nd = sortTag; }
+  get sortOrder2nd(): SortOrder { return this.inventoryService.sortOrder2nd; }
+  set sortOrder2nd(sortOrder: SortOrder) { this.inventoryService.sortOrder2nd = sortOrder; }
+  get sortOrderName2nd(): string { return this.sortOrder2nd === SortOrder.ASC ? '昇順' : '降順'; }
+  // ▲▲ これを追加 ▲▲
 
   // ▼▼▼ 追加：一括移動関連のメソッド群 ▼▼▼
   toggleMultiMove() {

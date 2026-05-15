@@ -4,6 +4,15 @@ import { SyncObject, SyncVar } from './core/synchronize-object/decorator';
 import { ObjectNode } from './core/synchronize-object/object-node';
 import { Network } from './core/system';
 
+// ▼▼ 追加：リリィ版のターゲット指定情報を保持するインターフェース ▼▼
+import { GameCharacter } from '@udonarium/game-character';
+
+export interface ChatMessageTargetContext {
+  text: string;
+  object: GameCharacter;
+}
+// ▲▲ 追加ここまで ▲▲
+
 export interface ChatMessageContext {
   identifier?: string;
   tabIdentifier?: string;
@@ -16,6 +25,10 @@ export interface ChatMessageContext {
   tag?: string;
   dicebot?: string;
   imageIdentifier?: string;
+  // ▼▼ 追加：リリィ版互換のコンテキストプロパティ ▼▼
+  imagePos?: number;
+  messColor?: string;
+  sendFrom?: string;
 }
 
 @SyncObject('chat')
@@ -42,16 +55,26 @@ export class ChatMessage extends ObjectNode implements ChatMessageContext {
   get color(): string { return this.getAttribute('messColor'); }
   set color(color: string) { this.setAttribute('messColor', color); }
 
+  // ▼▼ 追加：リリィ版DiceBotからの呼び出しに応えるためのエイリアス（中身はcolorと同じ） ▼▼
+  get messColor(): string { return this.getAttribute('messColor'); }
+  set messColor(messColor: string) { this.setAttribute('messColor', messColor); }
+
   // 立ち絵の表示位置 (XML属性: imagePos)
   get tachiePos(): number {
     const pos = this.getAttribute('imagePos');
     return pos ? Number(pos) : 0; 
   }
   set tachiePos(tachiePos: number) { this.setAttribute('imagePos', tachiePos.toString()); }
+  // ▼▼ 追加：リリィ版DiceBotからの呼び出しに応えるためのエイリアス ▼▼
+  get imagePos(): number { return this.tachiePos; }
+  set imagePos(imagePos: number) { this.tachiePos = imagePos; }
   
   // 送信元キャラクターの識別子 (XML属性: sendFrom)
   get sendFromChar(): string { return this.getAttribute('sendFrom'); }
   set sendFromChar(sendFrom: string) { this.setAttribute('sendFrom', sendFrom); }
+  // ▼▼ 追加：リリィ版DiceBotからの呼び出しに応えるためのエイリアス ▼▼
+  get sendFrom(): string { return this.getAttribute('sendFrom'); }
+  set sendFrom(sendFrom: string) { this.setAttribute('sendFrom', sendFrom); }
 
   // 立ち絵の画像ID (XML属性: imageIdentifier は既存の仕組みに既に存在するため、ここではヘルパーのみ記述します)
   get imageUrl(): string {

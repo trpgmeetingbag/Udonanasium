@@ -164,4 +164,65 @@ export class GameCharacter extends TabletopObject {
     palette.initialize();
     this.appendChild(palette);
   }
+
+// =========================================================
+  // ▼▼ リリィ版互換：ステータス操作 ＆ ダミーバフ管理メソッド ▼▼
+  // =========================================================
+
+  chkChangeStatusName(name: string): boolean {
+    return !!(this.detailDataElement?.getFirstElementByName(name) || this.commonDataElement?.getFirstElementByName(name));
+  }
+
+  getStatusType(name: string, nowOrMax: string): string {
+    const data = this.detailDataElement?.getFirstElementByName(name) || this.commonDataElement?.getFirstElementByName(name);
+    if (!data) return null;
+    if (nowOrMax === 'max') return 'value';
+    if (nowOrMax === 'now') return (data.type === 'numberResource' || data.currentValue !== undefined) ? 'currentValue' : 'value';
+    return null;
+  }
+
+  getStatusValue(name: string, nowOrMax: string): number {
+    const data = this.detailDataElement?.getFirstElementByName(name) || this.commonDataElement?.getFirstElementByName(name);
+    if (!data) return null;
+    let type = this.getStatusType(name, nowOrMax);
+    if (type === 'value') return Number(data.value);
+    if (type === 'currentValue') return Number(data.currentValue);
+    return null;
+  }
+
+  setStatusValue(name: string, nowOrMax: string, value: number): boolean {
+    const data = this.detailDataElement?.getFirstElementByName(name) || this.commonDataElement?.getFirstElementByName(name);
+    if (!data) return false;
+    let type = this.getStatusType(name, nowOrMax);
+    if (type === 'value') data.value = value;
+    if (type === 'currentValue') data.currentValue = value;
+    return true;
+  }
+
+  setStatusText(name: string, text: string): boolean {
+    const data = this.detailDataElement?.getFirstElementByName(name) || this.commonDataElement?.getFirstElementByName(name);
+    if (!data) return false;
+    if (data.type === 'numberResource' || data.currentValue !== undefined) {
+      data.currentValue = text;
+    } else {
+      data.value = text;
+    }
+    return true;
+  }
+
+  // --- バフ管理システム（エラー回避用のダミー実装） ---
+  decreaseBuffRound() { /* ダミー処理 */ }
+  increaseBuffRound() { /* ダミー処理 */ }
+  deleteZeroRoundBuff() { /* ダミー処理 */ }
+  deleteBuff(name: string): boolean { return false; /* ダミー処理 */ }
+  addBuffRound(name: string, sub: string, round: number) { /* ダミー処理 */ }
+  
+
+  // ▲▲ 追加ここまで ▲▲
+  
+  // game-character.ts にエラーが出た場合のみ追加
+
+  get rootDataElement(): DataElement {
+    return this.children.find(c => c.aliasName === 'data' || c instanceof DataElement) as DataElement;
+  }
 }

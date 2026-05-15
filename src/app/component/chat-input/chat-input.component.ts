@@ -134,7 +134,35 @@ private checkAndApplyDefaultDiceBot() {
 
   public isPaletteMode: boolean = false;
 
+
+  // ▼▼▼ リリィ版オートコンプリート用の通信ポートとメソッド（ここから追加） ▼▼▼
+  @Input() autoCompleteIndex: number = -1;
+  @Input() autoCompleteListLen: number = 0;
+  @Output() autoCompleteSwitch = new EventEmitter<number>();
+  @Output() autoCompleteDo = new EventEmitter<number>();
+
+  autoCompleteSwitchAction(e: Event, direction: number) {
+    // サジェスト候補が出ている時だけ上下キーのイベントを親（チャットパレット）に飛ばす
+    if (this.autoCompleteListLen > 0) {
+      if (e) e.preventDefault();
+      this.autoCompleteSwitch.emit(direction);
+    }
+  }
+
+  autoCompleteDoAction(e: Event) {
+    // サジェスト候補が「選択」されている状態でEnterが押されたら確定シグナルを飛ばす
+    if (this.autoCompleteIndex >= 0) {
+      if (e) e.preventDefault();
+      this.autoCompleteDo.emit(this.autoCompleteIndex);
+    } else {
+      // 候補が選ばれていない場合は、通常のチャット送信処理を行う
+      this.sendChat(e);
+    }
+  }
+  // ▲▲▲ 追加ここまで ▲▲▲
+
   @Output() chat = new EventEmitter<{ text: string, gameType: string, sendFrom: string, sendTo: string, color: string, tachieId: string }>();
+  @Output() chatTabSwitch = new EventEmitter<number>();
 
   // START: 現在の仕様の色と立ち絵管理
   get character(): GameCharacter | null {
@@ -460,7 +488,7 @@ private checkAndApplyDefaultDiceBot() {
          selectedTachieId = character.imageFile.identifier;
        }
 
-       statusChangeResult = this.applyStatusChanges(this.text, character);
+       //statusChangeResult = this.applyStatusChanges(this.text, character);
     } else if (this.myPeer) {
        selectedTachieId = this.myPeer.imageIdentifier;
     }
@@ -580,37 +608,70 @@ private allowsChat(gameCharacter: GameCharacter): boolean {
   }
 
 // メソッド名は互換性のためそのままにしていますが、実質的に「すべての変数を置換する」機能になります
-  private replaceMaxValueReferences(text: string, character: GameCharacter): string {
+private replaceMaxValueReferences(text: string, character: GameCharacter): string {
     if (!text || !character) return text;
+
+    // --- 正しいユドナリウムの構造によるチャットパレットの取得 ---
+    const paletteVariables: Map<string, string> = new Map();
+    // GameCharacterの子要素(children)から、aliasNameが'chat-palette'のものを探す
+    const chatPalette = character.children.find(child => child.aliasName === 'chat-palette');
     
-    // ▼ 修正: {変数名} または {変数名^} の両方にマッチするように正規表現を変更
-    return text.replace(/\{([^}]+?)(\^?)\}/g, (match, attrName, maxFlag) => {
-      let isMax = maxFlag === '^';
+    if (chatPalette) {
+      // チャットパレットの中身は .value に文字列として格納されている
+      const paletteText = chatPalette.value ? chatPalette.value.toString() : ''; 
+      const lines = paletteText.split('\n');
+      for (let line of lines) {
+        // 「//変数名=値」という形式を正規表現で探す
+        const match = line.match(/^\/\/([^=]+)=(.+)$/);
+        if (match) {
+          paletteVariables.set(match[1].trim(), match[2].trim());
+        }
+      }
+    }
+    // --------------------------------------------------------
+
+    // 正規表現で {変数名} または {変数名^} または {変数名＾}(全角対応) を探して置換
+    return text.replace(/\{([^}]+?)(\^|＾)?\}/g, (match, attrName, maxFlag) => {
+      const isMax = maxFlag === '^' || maxFlag === '＾';
       
+      // ① まずはステータス（データエレメント）から探す
       let targetElm = character.detailDataElement?.getFirstElementByName(attrName) ||
                       character.commonDataElement?.getFirstElementByName(attrName);
                       
       if (targetElm) {
         const isResource = targetElm.type === 'numberResource' || targetElm.currentValue !== undefined;
-        // isMax が true なら value(最大値) を、false なら currentValue(現在値) を取得
         let val = (isResource && !isMax) ? targetElm.currentValue : targetElm.value;
         if (val != null) return val.toString();
       }
-      return match; // 変数が見つからなかった場合はそのまま返す
+
+      // ② ステータスになければ、チャットパレットの変数から探す
+      if (paletteVariables.has(attrName)) {
+        return paletteVariables.get(attrName);
+      }
+
+      return match; // どちらにもなければそのまま返す
     });
   }
 
-  private applyStatusChanges(text: string, character: GameCharacter): string {
-    const regex = /:([^\s:+\-*/=^]+)(\^?)([+\-*/=])([0-9dD()+\-*/]+)([LZ]*)/g;
+private applyStatusChanges(text: string, character: GameCharacter): string {
+    // 1. 正規表現を全角（：、＋、－、数字、ｄ）も拾えるように拡張
+    const regex = /[:：]([^\s:：+＋\-*＊/／=＝^＾]+)([\^＾]?)([+＋\-*＊/／=＝])([0-9０-９dDｄＤ()（）+＋\-*＊/／]+)([LZ]*)/g;
     let match;
     let isUpdated = false;
     let results: string[] = [];
 
+    // 2. 拾い上げた全角英数記号を計算前に半角に変換するヘルパー関数
+    const toHalf = (str: string) => {
+      if (!str) return '';
+      return str.replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+    };
+
     while ((match = regex.exec(text)) !== null) {
+      // 3. マッチした各パーツを半角化（正規化）して以降の計算へ回す
       const attrName = match[1];
-      const isMax = match[2] === '^';
-      const operator = match[3];
-      const exprStr = match[4];
+      const isMax = match[2] === '^' || match[2] === '＾';
+      const operator = toHalf(match[3]);
+      const exprStr = toHalf(match[4]);
       const flags = match[5] || '';
       const flagL = flags.includes('L');
       const flagZ = flags.includes('Z');
@@ -704,5 +765,13 @@ private allowsChat(gameCharacter: GameCharacter): boolean {
     let option: PanelOption = { left: coordinate.x - 100, top: coordinate.y - 100, width: 300, height: 150 };
     let component = this.panelService.open<any>(ChatColorSettingComponent, option); // ChatColorSettingComponentはインポートが必要
     component.tabletopObject = this.character;
+  }
+
+  // ▼ 追加：タブ切り替えアクション
+  tabSwitchAction(e: Event, direction: number) {
+    if (e) {
+      e.preventDefault(); // デフォルトのカーソル移動を無効化
+    }
+    this.chatTabSwitch.emit(direction);
   }
 }

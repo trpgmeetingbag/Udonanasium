@@ -44,7 +44,10 @@ export class ChatTab extends ObjectNode implements InnerXml {
     }
   }
 
-  addMessage(message: ChatMessageContext): ChatMessage {
+// src/app/class/chat-tab.ts
+
+  // 引数に messageTargetContext を追加し、ターゲット指定を受け取れるようにします
+  addMessage(message: ChatMessageContext, messageTargetContext?: any): ChatMessage {
     message.tabIdentifier = this.identifier;
 
     let chat = new ChatMessage();
@@ -59,7 +62,19 @@ export class ChatTab extends ObjectNode implements InnerXml {
       chat.setAttribute(key, message[key]);
     }
     chat.initialize();
+    
+    // 通常のチャット送信イベント
     EventSystem.trigger('SEND_MESSAGE', { tabIdentifier: this.identifier, messageIdentifier: chat.identifier });
+
+    // ▼▼ 追加：リリィ準拠 リソース変更イベントの発火 ▼▼
+    // 第2引数の messageTargetContext も一緒に送ることで、ターゲット指定のリソース操作に対応させます
+    EventSystem.trigger('RESOURCE_EDIT_MESSAGE', { 
+      tabIdentifier: this.identifier, 
+      messageIdentifier: chat.identifier, 
+      messageTargetContext: messageTargetContext ? messageTargetContext : null
+    });
+    // ▲▲ 追加ここまで ▲▲
+
     this.appendChild(chat);
     return chat;
   }

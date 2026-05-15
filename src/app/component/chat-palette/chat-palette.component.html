@@ -1,19 +1,39 @@
-<div class="flex-container">
+<div class="flex-container" #root>
   <div style="flex-grow: 0;">
     <form>
       <div class="chat-tab">
         <label *ngFor="let chatTab of chatMessageService.chatTabs">
-          <input name="chat-tab" type="radio" value="{{chatTab.identifier}}" ng-control="options" [(ngModel)]="chatTabidentifier">
-          <div>{{chatTab.name}}<badge *ngIf="chatTab.hasUnread" class="badge" [count]="chatTab.unreadLength"></badge></div>
+          <input name="chat-tab" type="radio" value="{{chatTab.identifier}}" ng-control="options"
+            [(ngModel)]="chatTabidentifier">
+          <div>{{chatTab.name}}<badge *ngIf="chatTab.hasUnread" class="badge" [count]="chatTab.unreadLength"></badge>
+          </div>
         </label>
       </div>
     </form>
-    <chat-input [onlyCharacters]="true" [chatTabidentifier]="chatTabidentifier" 
-    [(gameType)]="gameType" [(sendFrom)]="sendFrom" [(text)]="text" (chat)="sendChat($event)" #chatInput></chat-input>
-    <div *ngIf="isEdit" class="edit-info"><i class="material-icons" style="vertical-align: bottom; size:0.8rem;">info_outline</i> チャットパレット編集中です</div>
+    <chat-input [onlyCharacters]="true" [chatTabidentifier]="chatTabidentifier" [(gameType)]="gameType"
+      [(sendFrom)]="sendFrom" [(text)]="text" (chat)="sendChat($event)" [autoCompleteIndex]="completeIndex()"
+      [autoCompleteListLen]="autoCompleteList().length" (autoCompleteSwitch)="autoCompleteSwitchRelative($event)"
+      (autoCompleteDo)="autoCompleteDoRelative($event)" #chatInput></chat-input>
+
+<div style="position:absolute;margin-top:-2em;">
+      <button class="tab-setting small-font" (click)="indexBtn()">＜<i class="material-icons small-font">bookmarks</i></button>
+    </div>
+    <div class="complete-box" style="position: relative; width:100%; height:0px;">
+      <ng-container
+        *ngIf="(autoCompleteList().length == 1 && autoCompleteList()[0] != text) || autoCompleteList().length > 1">
+        <select class="complete" id="{{_timeId}}_complete"
+          style="overflow-y: auto; position: absolute; top:-20px; left:60px; width: calc(100% - 155px); min-width: 220px; z-index: 10; opacity: 0.8;"
+          size="5" (input)="selectAutoComplete(text,$any($event.target).value)"
+          (click)="selectAutoComplete(text,$any($event.target).value)">
+          <option *ngFor="let palette of autoCompleteList()" value="{{palette}}">{{palette}}</option>
+        </select>
+      </ng-container>
+    </div>
+    <div *ngIf="isEdit" class="edit-info"><i class="material-icons"
+        style="vertical-align: bottom; size:0.8rem;">info_outline</i> チャットパレット編集中です</div>
   </div>
   <div *ngIf="!isEdit" style="flex-grow: 1; height: 0; min-height: 100px;">
-    <select #chatPlette class="palette" style="overflow-y: auto;" size="5" (input)="selectPalette(chatPlette.value)" (click)="clickPalette(chatPlette.value)">
+    <select #chatPlette id="{{_timeId}}_select" class="palette" style="overflow-y: auto;" size="5" (input)="selectPalette(chatPlette.value)" (click)="clickPalette(chatPlette.value)">
       <ng-container *ngIf="palette">
         <option *ngFor="let palette of palette.getPalette()" value="{{palette}}">{{palette}}</option>
       </ng-container>
