@@ -63,12 +63,11 @@ export class ChatMessageService {
         const isMacroCommand = /^:[^\s:+\-*/=^]+\^?[+\-*/=]/.test(text);
         const isMacroResult = /^[^\s:+\-*/=^]+(?:\(最大値\))?:.*＞/.test(text);
 
-if (msg.tag === 'system' && msg.from === 'System') {
+        if (msg.tag === 'system' && msg.from === 'System') {
            if (isMacroResult) {
               if (/\[.*\]/.test(text)) {
                  SoundEffect.play(PresetSound.diceRoll1); 
               } else {
-                 // ▼ 修正：BGM音量ではなく、専用の着信音音量（デフォルト0.5）を参照する
                  let ringtoneVol = localStorage.getItem('ringtoneVolume');
                  customChime.volume = ringtoneVol !== null ? parseFloat(ringtoneVol) : 0.5;
                  
@@ -77,13 +76,12 @@ if (msg.tag === 'system' && msg.from === 'System') {
               }
            }
         }
-else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
+        else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
            if (!isMacroCommand) {
               if (pendingChimeTimer) {
                  clearTimeout(pendingChimeTimer);
               }
               pendingChimeTimer = setTimeout(() => {
-                 // ▼ 修正：こちらも専用の着信音音量を参照する
                  let ringtoneVol = localStorage.getItem('ringtoneVolume');
                  customChime.volume = ringtoneVol !== null ? parseFloat(ringtoneVol) : 0.5;
                  
@@ -168,16 +166,18 @@ else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
       from: myUserId, 
       to: myUserId,   
       name: 'システムメッセージ',
-      imageIdentifier: '',
+      imageIdentifier: '', // リリィ版に準拠
       timestamp: this.calcTimeStamp(targetTab),
       tag: 'system to-pl-system-message', 
-      text: text
-    };
+      text: text,
+      imagePos: -1, // リリィ版に準拠
+      messColor: '#006633', // リリィ版に準拠
+      sendFrom: null // リリィ版に準拠
+    } as any;
 
     this.ngZone.run(() => {
       let message = targetTab.addMessage(context);
       if (message) {
-        message.setAttribute('messColor', '#006633');
         message.setAttribute('isSystem', 'true');
       }
     });
@@ -228,98 +228,51 @@ else if (msg.tag !== 'system' && msg.from !== 'System' && text.length > 0) {
     return Math.floor(this.timeOffset + (performance.now() - this.performanceOffset));
   }
 
-sendSystemMessageOnePlayer(chatTab: ChatTab, text: string, sendTo: string, color?: string): ChatMessage {
+  // リリィ互換: システムメッセージ専用（引数・戻り値をリリィ版通りに完全再現）
+  sendSystemMessageOnePlayer(chatTab: ChatTab, text: string, sendTo: string, color?: string): ChatMessage {
     let _color = !color ? '#006633' : color;
     let chatMessage: ChatMessageContext = {
       from: this.findId(sendTo),
       to: this.findId(sendTo),
       name: 'システムメッセージ',
-      imageIdentifier: '',
+      imageIdentifier: '', // lily
       timestamp: this.calcTimeStamp(chatTab),
       tag: 'DiceBot to-pl-system-message',
-      text: text
-    };
-    let msg = chatTab.addMessage(chatMessage);
-    if (msg) msg.setAttribute('messColor', _color);
-    return msg;
+      text: text,
+      imagePos: -1, // lily
+      messColor: _color, // lily
+      sendFrom: null // lily
+    } as any;
+    return chatTab.addMessage(chatMessage);
   }
 
-sendSystemMessageLastSendCharactor(text: string){
+  // リリィ互換: 最終発言キャラでシステム発言
+  sendSystemMessageLastSendCharactor(text: string){
     const chatTabList = ObjectStore.instance.get<ChatTabList>('ChatTabList');
-    const sysTab = chatTabList.chatTabs[0]; // systemMessageTabがないため、一番左のタブで代用
-    const sendFrom = PeerCursor.myCursor.identifier;
-    this.sendMessage(sysTab, text, null, sendFrom, null, '#006633', '');
+    const sysTab = chatTabList.chatTabs[0]; // Vanilla向けの代用
+    
+    // PeerCursorに型定義が存在しない可能性があるため、anyキャストで安全にリリィのプロパティへアクセス
+    const peerCursorAny = PeerCursor.myCursor as any;
+    const sendFrom = peerCursorAny.lastControlSendFrom ? peerCursorAny.lastControlSendFrom : PeerCursor.myCursor.identifier;
+    let imgIndex = peerCursorAny.lastControlImageIndex || 0;
+    
+    const imageIdentifier = this.findImageIdentifier(sendFrom, imgIndex);
+    if (imageIdentifier != peerCursorAny.lastControlImageIdentifier ) imgIndex = 0;
+    
+    this.sendMessage(sysTab, text, null, sendFrom, null, '#006633', imageIdentifier);
   }
 
-  // START: リリィ互換の送信処理（引数を調整し、エラーを回避）
-// START: リリィ互換の送信処理（引数を調整し、エラーを回避）
-
-    
-//   sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string | null, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
-//     let gameTypeString = '';
-//     let gameSysClass: any = null; // ★追加：読み込み済みのシステム実体を保持する変数
-//     if (gameSystem) {
-//       if (typeof gameSystem === 'string') {
-//         gameTypeString = gameSystem;
-//         // 文字列だけ渡された場合は、念のため前回の同期取得を試みる（フォールバック）
-//         gameSysClass = (DiceBot as any).getGameSystemSync ? (DiceBot as any).getGameSystemSync(gameTypeString) : null;
-//       } else {
-//         gameTypeString = (gameSystem as GameSystemClass).ID;
-//         gameSysClass = gameSystem; // ★修正：親から渡されたクラス実体をそのまま使う！
-//       }
-//     }
-
-//     let _color = color || '#000000';
-//     let chatMessageTag: string = gameTypeString ? gameTypeString : '';
-
-//     // ▼▼▼ 追加：シークレットダイスの判定（入力したコマンド自体を隠す処理） ▼▼▼
-// // ▼▼▼ 修正：シークレットダイスの判定（システム名の除去と正規表現の強化） ▼▼▼
-//     let dicebot = ObjectStore.instance.get<DiceBot>('DiceBot');
-//     let isSecret = false;
-    
-//     if (gameSysClass && gameSysClass.COMMAND_PATTERN) {
-//       // 1. 全角を半角にし、小文字に統一
-//       let normalizedText = StringUtil.toHalfWidth(text).toLowerCase();
-
-//       // 2. 先頭にシステム名（例："doublecross "）が付いている場合は除去する
-//       let gameIdLower = gameSysClass.ID.toLowerCase();
-//       if (normalizedText.startsWith(gameIdLower + ' ')) {
-//         normalizedText = normalizedText.substring(gameIdLower.length + 1).trim();
-//       }
-
-//       // 3. 繰り返しコマンド（x3 など）を除去
-//       let nonRepeatText = normalizedText
-//         .replace(/^(\d+)?\s+/, 'repeat1 ')
-//         .replace(/^x(\d+)?\s+/, 'repeat1 ')
-//         .replace(/repeat(\d+)?\s+/, '');
-
-//       // 4. 先頭が 's' であるかを判定し、その後ろの文字列を抽出
-//       let regArray = /^s(.*)?/i.exec(nonRepeatText);
-      
-//       // 5. 抽出した文字列がシステムのコマンドパターンに合致するか判定
-//       if (regArray && gameSysClass.COMMAND_PATTERN.test(regArray[1])) {
-//         isSecret = true;
-//       }
-//     }
-    
-//     if (isSecret) {
-//       chatMessageTag += (chatMessageTag.length > 0 ? ' ' : '') + 'secret';
-//     }
-
-sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string | null, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
+  // リリィ互換の送信処理（引数はVanilla版シグネチャを保護しつつ、内部ロジックはリリィに統合）
+  sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string | null, sendFrom: string, sendTo?: string, color: string = '#000000', tachieId: string = ''): ChatMessage {
     
     console.log(`[Debug] ====== sendMessage 処理開始 ======`);
-    console.log(`[Debug] 1. 受信した text: "${text}", gameSystemの型: ${typeof gameSystem}`, gameSystem);
-
-    // --- 現在のプロジェクトの文字列仕様から、クラス実体に変換するブリッジ処理 ---
+    
     let gameSysClass: any = null;
     if (gameSystem) {
       if (typeof gameSystem === 'string') {
         gameSysClass = (DiceBot as any).getGameSystemSync ? (DiceBot as any).getGameSystemSync(gameSystem) : null;
-        console.log(`[Debug] 2-A. 文字列から同期取得を試行。取得結果 ID:`, gameSysClass ? gameSysClass.ID : '取得失敗(null)');
       } else {
         gameSysClass = gameSystem;
-        console.log(`[Debug] 2-B. クラス実体として直接受信。ID:`, gameSysClass.ID);
       }
     }
 
@@ -328,38 +281,37 @@ sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string
     
     if (gameSysClass == null) {
       chatMessageTag = (typeof gameSystem === 'string') ? gameSystem : '';
-      console.log(`[Debug] 3-A. gameSysClassがnullのため判定をスキップ。Tag:`, chatMessageTag);
     } else {
-      console.log(`[Debug] 3-B. シークレット判定処理へ移行...`);
       let isSecretDice = dicebot ? (dicebot as any).checkSecretDiceCommand(gameSysClass, text) : false;
       let isSecretEdit = dicebot ? (dicebot as any).checkSecretEditCommand(text) : false;
       
-      console.log(`[Debug]   -> checkSecretDiceCommand 結果:`, isSecretDice);
-      console.log(`[Debug]   -> checkSecretEditCommand 結果:`, isSecretEdit);
-
       if (isSecretDice || isSecretEdit) {
         chatMessageTag = `${gameSysClass.ID} secret`;
       } else {
         chatMessageTag = gameSysClass.ID;
       }
     }
-    console.log(`[Debug] 4. 最終的に付与する Tag:`, chatMessageTag);
-    console.log(`[Debug] ======================================`);
 
     let _color = color || '#000000';
     let finalImageIdentifier = tachieId || this.findImageIdentifier(sendFrom);
+    
+    // 【重要】リリィ版通り、コンテキスト初期化時にすべての情報を渡すことで二重管理を防ぎます
+    let pos = this.findImagePos(sendFrom);
 
     let chatMessage: ChatMessageContext = {
       from: Network.peer.userId,
       to: this.findId(sendTo),
       name: this.makeMessageName(sendFrom, sendTo),
-      imageIdentifier: finalImageIdentifier,
+      imageIdentifier: finalImageIdentifier, // lily
       timestamp: this.calcTimeStamp(chatTab),
       tag: chatMessageTag,
-      text: text
-    };
+      text: text,
+      imagePos: pos, // lily
+      messColor: _color, // lily
+      sendFrom: sendFrom // lily
+    } as any; // ChatMessageContextにプロパティが存在しないエラーを回避するためのキャスト
 
-    // ...以降の立ち絵置き換え処理（ let chkMessage = ' ' + text; など）はそのまま残してください
+    this.setLastControlInfoToPeer(sendFrom, finalImageIdentifier, 0, sendTo);
 
     // 立ち絵置き換えとテキスト整形
     let chkMessage = ' ' + text;
@@ -396,43 +348,8 @@ sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string
       }
     }
 
-    let message = chatTab.addMessage(chatMessage);
-    if (message) {
-      message.setAttribute('messColor', _color);
-      message.setAttribute('sendFrom', sendFrom);
-      message.setAttribute('imagePos', this.findImagePos(sendFrom).toString());
-    }
-
-    // 立ち絵表示用（チャットタブ上部の更新）
-    if (message) {
-      let charObj = ObjectStore.instance.get(sendFrom);
-      if (charObj instanceof GameCharacter) {
-        let pos = 0;
-        let tachieRoot = charObj.detailDataElement ? charObj.detailDataElement.getFirstElementByName('立ち絵位置') : null;
-        if (tachieRoot) {
-          let posElement = tachieRoot.getFirstElementByName('POS');
-          if (posElement) {
-            let posValue = posElement.currentValue !== undefined ? posElement.currentValue : posElement.value;
-            pos = parseInt(posValue.toString(), 10);
-          }
-        }
-        if (isNaN(pos)) pos = 0;
-
-        if (chatMessage.imageIdentifier && pos >= 0 && pos < 12) {
-          if (!chatTab.imageIdentifier) {
-            chatTab.imageIdentifier = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '];
-          }
-          let newIdentifiers = chatTab.imageIdentifier.slice();
-          newIdentifiers[pos] = chatMessage.imageIdentifier;
-          chatTab.imageIdentifier = newIdentifiers; 
-          chatTab.setAttribute('activeTachiePos', pos.toString());
-        }
-      }
-    }
-
-    return message;
+    return chatTab.addMessage(chatMessage);
   }
-  // END
 
   private findId(identifier: string): string {
     let object = ObjectStore.instance.get(identifier);
@@ -461,22 +378,25 @@ sendMessage(chatTab: ChatTab, text: string, gameSystem: GameSystemClass | string
     return sendFromName + ' > ' + sendToName;
   }
 
+  // リリィ互換: システムメッセージ発言用に最後に使用した立ち絵を記録する処理
   private setLastControlInfoToPeer(sendFrom: string, imageIdentifier: string, imgindex: number, sendTo?: string) {
-    // const sendFromName = this.findObjectName(sendFrom);
-    // const peerCursor = PeerCursor.myCursor;
+    const sendFromName = this.findObjectName(sendFrom);
+    const peerCursorAny = PeerCursor.myCursor as any;
 
-    // if (!peerCursor) return;
+    if (!peerCursorAny) return;
 
-    // if (sendTo == null || sendTo.length < 1) {
-    //   if (peerCursor.lastControlImageIdentifier != imageIdentifier){
-    //     peerCursor.lastControlImageIdentifier = imageIdentifier;
-    //   }
-    //   if (peerCursor.lastControlCharacterName != sendFromName){
-    //     peerCursor.lastControlCharacterName = sendFromName;
-    //   }
-    //   peerCursor.lastControlSendFrom = sendFrom;
-    //   peerCursor.lastControlImageIndex = imgindex;
-    // }
+    if (sendTo == null || sendTo.length < 1) {
+      if (peerCursorAny.lastControlImageIdentifier != imageIdentifier){
+        peerCursorAny.lastControlImageIdentifier = imageIdentifier;
+      }
+      if (peerCursorAny.lastControlCharacterName != sendFromName){
+        peerCursorAny.lastControlCharacterName = sendFromName;
+      }
+      peerCursorAny.lastControlSendFrom = sendFrom;
+      peerCursorAny.lastControlImageIndex = imgindex;
+    } else {
+      // 秘話時は操作なし
+    }
   }
 
   private _ImageIndex = 0;

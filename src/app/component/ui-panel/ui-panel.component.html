@@ -1,6 +1,7 @@
 <div [@flyInOut]="'in'" [ngClass]="{'pointer-events-none': isPointerDragging}" class="draggable-panel" [class.is-folded]="isFolded"
   [style.left.px]="left" [style.top.px]="top" [style.width.px]="width" [style.height.px]="height"
-  [draggable.stack]="'.draggable-panel'" [resizable.stack]="'.draggable-panel'" appDraggable appResizable #draggablePanel>
+  [draggable.stack]="'.draggable-panel'" [resizable.stack]="'.draggable-panel'" appDraggable appResizable #draggablePanel
+  (mouseenter)="showTachie(true)" (mouseleave)="showTachie(false)">
   <div class="title">
     <div class="title-text">{{panelService.title}}</div>
     <div class="title-button" *ngIf="showTitleButtons">
@@ -10,23 +11,15 @@
       <button (click)="close()"><i class="material-icons" style="font-size: 14px;">close</i></button>
     </div>
   </div>
+
+  <!-- ▼ 追加：リリィ版準拠 チャットタブの場合のみ、ギロチンの外側に立ち絵エンジンを直接描画 ▼ -->
+  <ng-container *ngIf="panelService.chatTab">
+    <chat-tachie-img [chatTabidentifier]="panelService.chatTab.identifier" [isTilteTop]="true" [dispByMouse]="tachieDispByMouse"></chat-tachie-img>
+  </ng-container>
+  <!-- ▲ 追加ここまで ▲ -->
+
   <div class="scrollable-panel" #scrollablePanel>
     <ng-content></ng-content>
     <div #content></div>
   </div>
 </div>
-<!-- <div [@flyInOut]="'in'" [ngClass]="{'pointer-events-none': isPointerDragging}" class="draggable-panel"
-  [style.left.px]="left" [style.top.px]="top" [style.width.px]="width" [style.height.px]="height"
-  [draggable.stack]="'.draggable-panel'" [resizable.stack]="'.draggable-panel'" appDraggable appResizable #draggablePanel>
-  <div class="title">
-    <div class="title-text">{{panelService.title}}</div>
-    <div class="title-button" *ngIf="showTitleButtons">
-      <button (click)="toggleFullScreen()"><i class="material-icons" style="font-size: 14px;">fullscreen</i></button>
-      <button (click)="close()"><i class="material-icons" style="font-size: 14px;">close</i></button>
-    </div>
-  </div>
-  <div class="scrollable-panel" #scrollablePanel>
-    <ng-content></ng-content>
-    <div #content></div>
-  </div>
-</div> -->

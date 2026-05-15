@@ -1,181 +1,209 @@
-import { Component, Input, ElementRef, AfterViewInit, OnDestroy, ViewChild, OnInit } from '@angular/core';
-import { ChatTab } from '@udonarium/chat-tab';
-import { ChatTabList } from '@udonarium/chat-tab-list';
-import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
-import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
-// === ↓ 追加 ↓ ===
-import { ChatSettingsService } from 'service/chat-settings.service';
-// === ↑ 追加 ↑ ===
+import { Component, ElementRef, ChangeDetectorRef, EventEmitter, Input, NgZone,
+         OnDestroy, OnInit, AfterViewInit, AfterViewChecked, Output, ViewChild } from '@angular/core';
 
-import { EventSystem } from '@udonarium/core/system';
 import { ChatMessage } from '@udonarium/chat-message';
+import { ChatTab } from '@udonarium/chat-tab';
+import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
+import { EventSystem } from '@udonarium/core/system';
+import { PeerCursor } from '@udonarium/peer-cursor';
+import { ChatMessageService } from 'service/chat-message.service';
+import { PanelOption, PanelService } from 'service/panel.service';
+import { PointerDeviceService } from 'service/pointer-device.service';
+import { ChatSettingsService } from 'service/chat-settings.service'; // ★追加: 独自の設定サービスをインポート
+
+import { ImageFile } from '@udonarium/core/file-storage/image-file';
+import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
+
+import { ChatTabList } from '@udonarium/chat-tab-list';
 
 @Component({
   selector: 'chat-tachie-img',
   templateUrl: './chat-tachie-img.component.html',
   styleUrls: ['./chat-tachie-img.component.css']
 })
-export class ChatTachieImageComponent implements AfterViewInit, OnDestroy {
+export class ChatTachieImageComponent implements OnInit, OnDestroy, AfterViewInit, AfterViewChecked {
+
   @Input() chatTabidentifier: string = '';
+  @Input() isTilteTop = false;
+  @Input() dispByMouse = false;
+
+  @ViewChild('tachieArea', { read: ElementRef }) private tachieArea: ElementRef;  
+  private _tachieAreaWidth = 0;
   
-  // HTML側で作るお引越し用のレイヤーを捕まえます
-  @ViewChild('tachieLayer', { static: true }) layerRef: ElementRef;
-  posArray: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  get chatTab(): ChatTab { return ObjectStore.instance.get<ChatTab>(this.chatTabidentifier); }
+  get chatTabList(): ChatTabList { return ObjectStore.instance.get<ChatTabList>('ChatTabList'); }
 
-  constructor(
-    private elementRef: ElementRef,
-    public chatSettingsService: ChatSettingsService // ← これを追加
-  ) {}
-
-ngOnInit() {
-    EventSystem.register(this)
-      // ① 他人の発言用：届いた時点で既に属性（imagePos）が揃っている
-      .on('MESSAGE_ADDED', event => {
-        if (event.data.tabIdentifier !== this.chatTabidentifier) return;
-        let message = ObjectStore.instance.get<ChatMessage>(event.data.messageIdentifier);
-        this.checkAndUnhideTachie(message);
-      })
-      // ② 自分の発言用：発言後に setAttribute で imagePos が追加（更新）された瞬間に発火する
-      .on(`UPDATE_GAME_OBJECT/aliasName/${ChatMessage.aliasName}`, event => {
-        let message = ObjectStore.instance.get<ChatMessage>(event.data.identifier);
-        // このチャットタブのメッセージが更新された場合のみ処理
-        if (message && message.tabIdentifier === this.chatTabidentifier) {
-          this.checkAndUnhideTachie(message);
-        }
-      });
-  }
-
-  // ▼▼▼ 追加：表示復活ロジックを共通化して切り出し ▼▼▼
-  private checkAndUnhideTachie(message: ChatMessage | null) {
-    if (!message) return;
-    
-    // 発言に紐づく立ち絵ポジション（imagePos）を取得
-    let posStr = message.getAttribute('imagePos');
-    if (posStr != null) {
-      let pos = parseInt(posStr as string, 10);
-      if (pos >= 0 && pos < 12) {
-        // 新しく喋ったキャラクターのポジションなら、ローカルの非表示フラグを下ろす
-        if (this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier]) {
-          this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier][pos] = false;
-        }
-      }
+  // =========================================================
+  // 【修正点】設定値の取得先を ChatSettingsService に変更
+  // =========================================================
+  
+  // ▼ 追加：独自管理されている表示ON/OFFフラグを取得するゲッター
+  get isTachieDispFlagOn(): boolean {
+    if (this.chatSettingsService && this.chatSettingsService.tachieDispMap) {
+      const flag = this.chatSettingsService.tachieDispMap[this.chatTabidentifier];
+      if (flag !== undefined) return flag;
     }
+    return true; // 未設定の場合は初期値として表示(true)とする
   }
 
-  // 画面描画後、真のギロチン（scrollable-panel）から脱出し、大枠（draggable-panel）の直下へお引越しします
-  ngAfterViewInit() {
-    setTimeout(() => {
-      const panel = this.elementRef.nativeElement.closest('.draggable-panel');
-      if (panel && this.layerRef) {
-        panel.appendChild(this.layerRef.nativeElement);
-      }
-    }, 100);
+  get isTachieInWindow(): boolean {
+    return false;
   }
-
-  // ウィンドウが閉じた時は、お引越し先からレイヤーを綺麗にお掃除します
-  ngOnDestroy() {
-    EventSystem.unregister(this); // ▼ 追加：イベントの監視を解除
-    if (this.layerRef && this.layerRef.nativeElement.parentElement) {
-      this.layerRef.nativeElement.parentElement.removeChild(this.layerRef.nativeElement);
-    }
-  }
-
-  get chatTab(): ChatTab {
-    return ObjectStore.instance.get<ChatTab>(this.chatTabidentifier);
-  }
-
-  get chatTabList(): ChatTabList {
-    return ChatTabList.instance;
-  }
-
-  // === ↓ ここから追加 ↓ ===
-  // 個人の表示フラグをサービスから取得
-  get tachieDispFlag(): boolean {
-    if (this.chatSettingsService.tachieDispMap[this.chatTabidentifier] === undefined) {
-      return true; // 初期状態は表示
-    }
-    return this.chatSettingsService.tachieDispMap[this.chatTabidentifier];
-  }
-
-  // 個人のサイズ設定をサービスから取得
+  
   get tachieHeightValue(): number {
-    return this.chatSettingsService.tachieHeightValue;
+    // ▼ 修正：独自サービス（chatSettingsService）からサイズ設定を読み取る
+    if (this.chatSettingsService && this.chatSettingsService.tachieHeightValue !== undefined) {
+       return this.chatSettingsService.tachieHeightValue;
+    }
+    return 250;
   }
-  // === ↑ ここまで追加 ↑ ===
-
-  // --- START: アクティブな立ち絵POSの取得ロジック ---
-  // 現在アクティブ（不透明）にすべきPOS番号を取得します。誰も発言していない初期状態などは -1 を返します。
-  get activePos(): number {
-    if (!this.chatTab) return -1;
-    const posStr = this.chatTab.getAttribute('activeTachiePos');
-    return posStr ? parseInt(posStr, 10) : -1;
-  }
-  // --- END ---
-
   
-  // 指定されたPOSの画像URLを取得
-  getImageUrl(pos: number): string {
+  get isKeepTachieOutWindow(): boolean {
+    return true; 
+  }
+  
+  get isTachieDispMode() {
+    return true; 
+  }
+
+  get tachieY_Pos(): number { 
+    return - this.tachieHeightValue - 26;
+  }
+
+  get tachieAreaWidth(): number { 
+    return this._tachieAreaWidth;
+  }
+  
+  tachieAreaHeight(pos: number): number {
+    if (this.chatTab) {
+      // ▼ 修正：先ほど作成した独自管理の表示フラグを参照する
+      if (this.isTachieDispFlagOn) {
+        if (typeof (this.chatTab as any).tachiePosIsDisp === 'function') {
+          if ((this.chatTab as any).tachiePosIsDisp(pos)) return this.tachieHeightValue;
+        } else {
+          let id = this.chatTab.imageIdentifier ? this.chatTab.imageIdentifier[pos] : ' ';
+          if (id && id.trim() !== '') return this.tachieHeightValue;
+        }
+      }
+    }
+    return 0;
+  }
+  
+  get tachieAreaHeight00(): number { return this.tachieAreaHeight(0); }
+  get tachieAreaHeight01(): number { return this.tachieAreaHeight(1); }
+  get tachieAreaHeight02(): number { return this.tachieAreaHeight(2); }
+  get tachieAreaHeight03(): number { return this.tachieAreaHeight(3); }
+  get tachieAreaHeight04(): number { return this.tachieAreaHeight(4); }
+  get tachieAreaHeight05(): number { return this.tachieAreaHeight(5); }
+  get tachieAreaHeight06(): number { return this.tachieAreaHeight(6); }
+  get tachieAreaHeight07(): number { return this.tachieAreaHeight(7); }
+  get tachieAreaHeight08(): number { return this.tachieAreaHeight(8); }
+  get tachieAreaHeight09(): number { return this.tachieAreaHeight(9); }
+  get tachieAreaHeight10(): number { return this.tachieAreaHeight(10); }
+  get tachieAreaHeight11(): number { return this.tachieAreaHeight(11); }
+  
+  ngAfterViewInit() {
+    if (this.tachieArea) {
+      this._tachieAreaWidth = this.tachieArea.nativeElement.offsetWidth;
+      this.changeDetectionRef.detectChanges();
+    }
+  }  
+
+  ngAfterViewChecked() {
+    if (this.tachieArea) {
+      this._tachieAreaWidth = this.tachieArea.nativeElement.offsetWidth;
+      this.changeDetectionRef.detectChanges();
+    }
+  }  
+
+  private _zindexOffset = 10;
+
+  getZIndexSafe(pos: number): number {
+    if (this.chatTab && typeof (this.chatTab as any).tachieZindex === 'function') {
+      return (this.chatTab as any).tachieZindex(pos) + this._zindexOffset;
+    }
+    return pos + this._zindexOffset;
+  }
+
+  get zIndex_00(): number { return this.getZIndexSafe(0); }
+  get zIndex_01(): number { return this.getZIndexSafe(1); }
+  get zIndex_02(): number { return this.getZIndexSafe(2); }
+  get zIndex_03(): number { return this.getZIndexSafe(3); }
+  get zIndex_04(): number { return this.getZIndexSafe(4); }
+  get zIndex_05(): number { return this.getZIndexSafe(5); }
+  get zIndex_06(): number { return this.getZIndexSafe(6); }
+  get zIndex_07(): number { return this.getZIndexSafe(7); }
+  get zIndex_08(): number { return this.getZIndexSafe(8); }
+  get zIndex_09(): number { return this.getZIndexSafe(9); }
+  get zIndex_10(): number { return this.getZIndexSafe(10); }
+  get zIndex_11(): number { return this.getZIndexSafe(11); }
+
+  private _opacity = 0.66;
+
+  getOpacitySafe(pos: number): number {
+    if (this.chatTab && typeof (this.chatTab as any).tachieZindex === 'function') {
+      if ((this.chatTab as any).tachieZindex(pos) == 11) return 1;
+    }
+    return this._opacity;
+  }
+
+  get opacity_00(): number { return this.getOpacitySafe(0); }
+  get opacity_01(): number { return this.getOpacitySafe(1); }
+  get opacity_02(): number { return this.getOpacitySafe(2); }
+  get opacity_03(): number { return this.getOpacitySafe(3); }
+  get opacity_04(): number { return this.getOpacitySafe(4); }
+  get opacity_05(): number { return this.getOpacitySafe(5); }
+  get opacity_06(): number { return this.getOpacitySafe(6); }
+  get opacity_07(): number { return this.getOpacitySafe(7); }
+  get opacity_08(): number { return this.getOpacitySafe(8); }
+  get opacity_09(): number { return this.getOpacitySafe(9); }
+  get opacity_10(): number { return this.getOpacitySafe(10); }
+  get opacity_11(): number { return this.getOpacitySafe(11); }
+
+  get imageFileUrl_00(): string { return this.getImageUrl(0); }
+  get imageFileUrl_01(): string { return this.getImageUrl(1); }
+  get imageFileUrl_02(): string { return this.getImageUrl(2); }
+  get imageFileUrl_03(): string { return this.getImageUrl(3); }
+  get imageFileUrl_04(): string { return this.getImageUrl(4); }
+  get imageFileUrl_05(): string { return this.getImageUrl(5); }
+  get imageFileUrl_06(): string { return this.getImageUrl(6); }
+  get imageFileUrl_07(): string { return this.getImageUrl(7); }
+  get imageFileUrl_08(): string { return this.getImageUrl(8); }
+  get imageFileUrl_09(): string { return this.getImageUrl(9); }
+  get imageFileUrl_10(): string { return this.getImageUrl(10); }
+  get imageFileUrl_11(): string { return this.getImageUrl(11); }
+
+  private getImageUrl(pos: number): string {
     if (!this.chatTab || !this.chatTab.imageIdentifier) return '';
     let identifier = this.chatTab.imageIdentifier[pos];
-    if (!identifier || identifier === ' ') return '';
-    let image = ImageStorage.instance.get(identifier);
-    return image ? image.url : '';
+    if (!identifier || identifier.trim() === '') return '';
+    let image: ImageFile = ImageStorage.instance.get(identifier);
+    if (image) return image.url;
+    return '';
   }
 
-  // --- START: 立ち絵の等間隔配置と両端の調整 ---
-  getLeftStyle(pos: number): string {
-    return `${(pos / 11) * 100}%`;
-  }
-
-  getTransformStyle(pos: number): string {
-    // posが0の時は左端(0%)、11の時は右端(-100%)へスライドさせ、枠外へのはみ出しを防ぐ
-    const shift = (pos / 11) * -100;
-    return `translateX(${shift}%)`;
-  }
-// --- END ---
-
-  // 画像クリックでそのPOSの立ち絵を消す
-  // tachieClick(pos: number) {
-  //   if (this.chatTab) {
-  //     this.chatTab.tachiePosHide(pos);
-  //   }
-  // }
-
-  // === ↓ 修正・追加箇所 ↓ ===
-
-  // 1. 指定した位置が「自分だけ」非表示に設定されているか確認するゲッター
-  isPosHidden(pos: number): boolean {
-    const hiddenArray = this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier];
-    return hiddenArray ? !!hiddenArray[pos] : false;
-  }
-
-  // 2. 画像クリック時の処理を書き換え
   tachieClick(pos: number) {
-    // 共有データの chatTab.tachiePosHide(pos) は呼ばない（同期を防ぐ）
-    
-    // 自分のローカル設定を更新する
-    if (!this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier]) {
-      // まだデータがない場合は、12ポジション分(false)の配列を作成
-      this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier] = new Array(12).fill(false);
+    if (typeof (this.chatTab as any).tachiePosHide === 'function') {
+      this.chatTab.tachiePosHide(pos);
     }
-    
-    // 現在の状態を反転させる（クリックするたびに 消える <-> 出る を切り替え可能にする）
-    const currentState = this.isPosHidden(pos);
-    this.chatSettingsService.tachieHiddenPosMap[this.chatTabidentifier][pos] = !currentState;
   }
 
-  // tachieClick(pos: number) {
-  //   if (this.chatTab && this.chatTab.imageIdentifier) {
-  //     // 現在の配列をコピー
-  //     let newIdentifiers = this.chatTab.imageIdentifier.slice();
-  //     // クリックされた場所を「空白（半角スペース）」で上書きして消す
-  //     newIdentifiers[pos] = ' '; 
-  //     // チャットタブのデータとして適用
-  //     this.chatTab.imageIdentifier = newIdentifiers;
-  //   }
-  // }
+  constructor(
+    public chatMessageService: ChatMessageService,
+    private changeDetectionRef: ChangeDetectorRef,
+    private panelService: PanelService,
+    private pointerDeviceService: PointerDeviceService,
+    public chatSettingsService: ChatSettingsService // ★追加: コンストラクタでサービスを受け取る
+  ) { }
 
-  // (※もし以前の実装で getImageUrl 内で chatTab の非表示状態を参照していた場合は、
-  // そこも pure な画像取得だけに留めるようにします)
-  // === ↑ 修正・追加箇所ここまで ↑ ===
+  ngOnInit() {
+  }
+
+  ngOnDestroy() {
+    EventSystem.unregister(this);
+  }
+
+  trackByChatTab(index: number, chatTab: ChatTab) {
+    return chatTab.identifier;
+  }
 }
