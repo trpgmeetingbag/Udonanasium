@@ -27,6 +27,8 @@ import { PointerDeviceService } from 'service/pointer-device.service';
 import { SelectionState, TabletopSelectionService } from 'service/tabletop-selection.service';
 import { InputHandler } from 'directive/input-handler';
 
+import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
+
 @Component({
   selector: 'game-character',
   templateUrl: './game-character.component.html',
@@ -154,6 +156,17 @@ get disableChat(): boolean {
     private elementRef: ElementRef<HTMLElement>
   ) { }
 
+
+  ngOnInit() {
+    EventSystem.register(this)
+      .on('CHK_TARGET_CHANGE', -1000, event => {
+        let object = ObjectStore.instance.get(event.data.identifier);
+        if (object === this.gameCharacter) {
+          this.changeDetector.markForCheck();
+        }
+      });
+  }
+
   ngOnChanges(): void {
     EventSystem.unregister(this);
     EventSystem.register(this)
@@ -171,7 +184,7 @@ get disableChat(): boolean {
       })
       .on(`UPDATE_SELECTION/identifier/${this.gameCharacter?.identifier}`, event => {
         this.changeDetector.markForCheck();
-      });
+      })
     this.movableOption = {
       tabletopObject: this.gameCharacter,
       transformCssOffset: 'translateZ(1.0px)',
@@ -393,5 +406,37 @@ get disableChat(): boolean {
       this.input = new InputHandler(this.elementRef.nativeElement);
     });
     this.input.onStart = this.onInputStart.bind(this);
+  }
+
+  // ▼▼ リリィ互換：複数ターゲット操作のキー判定 ▼▼
+checkKey(event: MouseEvent) {
+    // 【チェック1】そもそもメソッドが呼ばれているか？
+    console.log('--- checkKey 発動 ---');
+    console.log('クリックイベント:', event);
+
+    let key_shift = event.shiftKey;
+    let key_alt = event.altKey;
+    
+    // 【チェック2】Altキーの入力が正しくブラウザからAngularに伝わっているか？
+    console.log(`キー判定 -> Alt: ${key_alt}, Shift: ${key_shift}`);
+
+    if (key_alt && !key_shift) {
+      // 【チェック3】変数のトグル（ON/OFF）が正しく行われているか？
+      console.log('変更前 targeted:', this.gameCharacter.targeted);
+      this.gameCharacter.targeted = !this.gameCharacter.targeted;
+      console.log('変更後 targeted:', this.gameCharacter.targeted);
+      
+      this.changeDetector.markForCheck();
+      console.log('画面更新(markForCheck)をリクエストしました');
+    }
+
+    if (key_shift && key_alt) {
+      console.log('全解除コマンド発動！');
+      let objects = ObjectStore.instance.getObjects(GameCharacter);
+      for (let object of objects) {
+        object.targeted = false;
+        EventSystem.trigger('CHK_TARGET_CHANGE', { identifier: object.identifier });
+      }
+    }
   }
 }

@@ -354,23 +354,26 @@ export class DiceBot extends GameObject {
     }
   }
 
-private checkResourceEditCommand( originalMessage: ChatMessage , messageTargetContext: any[]){
+// ▼▼▼ 追加：現在ターゲットされているキャラクターのリストを盤面からかき集める ▼▼▼
+  private targetedGameCharacterList(): GameCharacter[] {
+    return ObjectStore.instance.getObjects(GameCharacter).filter(character => character.targeted);
+  }
+  // ▲▲▲ 追加ここまで ▲▲▲
+
+  private checkResourceEditCommand( originalMessage: ChatMessage , messageTargetContext: any[]){
 
     let resourceByCharacter :ResourceByCharacter[] = [];
     let buffByCharacter :BuffByCharacter[] = [];
 
-    // 先ほど修正したキャラクター特定メソッド
+    // 送信元キャラクターの取得
     let sendFromObject :GameCharacter = this.messageSendGameCharacter(originalMessage.sendFrom, originalMessage);
     let isSecret = false;
 
-    // ▼▼▼ 追加：コンテキストが空っぽの場合、メッセージ本文そのものを解析対象にする ▼▼▼
     let targetContexts = messageTargetContext;
     if (!targetContexts || targetContexts.length === 0) {
       targetContexts = [{ text: originalMessage.text, object: null }];
     }
-    // ▲▲▲ 追加ここまで ▲▲▲
 
-    // messageTargetContext を targetContexts に変更
     for (const oneMessageTargetContext of targetContexts) {
       let text = ' ' + oneMessageTargetContext.text;
       let isMatch = text.match(/(\s[sSｓＳ][tTｔＴ]?[:：&＆])/i) ? true : false;
@@ -397,32 +400,43 @@ private checkResourceEditCommand( originalMessage: ChatMessage , messageTargetCo
         let resultRes = chktxt.match(/t?:[^:：&＆]+/gi);
         let resultBuff = chktxt.match(/t?&[^:：&＆]+/gi);
 
+        // ▼▼▼ 修正：ターゲット操作(t:)なのに相手が未指定の場合、自分でターゲットを探して展開する ▼▼▼
         if ( resultRes ){
           for( let res of resultRes){
-            let resByCharacter :ResourceByCharacter = {
-              resourceCommand: '',
-              object: null,
+            let isTargeted = res.match(/^t:/i);
+            if (isTargeted && !oneMessageTargetContext.object) {
+              // ターゲット操作の時：盤面のターゲット全員にコマンドを複製する
+              let targets = this.targetedGameCharacterList();
+              for (let target of targets) {
+                resourceByCharacter.push({ resourceCommand: res, object: target });
+              }
+            } else {
+              // 自分自身の操作の時
+              resourceByCharacter.push({ resourceCommand: res, object: oneMessageTargetContext.object });
             }
-            resByCharacter.resourceCommand = res;
-            resByCharacter.object = oneMessageTargetContext.object;
-            resourceByCharacter.push(resByCharacter);
           }
         }
+        
         if ( resultBuff ){
           for( let buff of resultBuff){
-            let bByCharacter :BuffByCharacter = {
-              buffCommand: '',
-              object: null,
+            let isTargeted = buff.match(/^t&/i);
+            if (isTargeted && !oneMessageTargetContext.object) {
+              // バフ付与（ターゲット）の時
+              let targets = this.targetedGameCharacterList();
+              for (let target of targets) {
+                buffByCharacter.push({ buffCommand: buff, object: target });
+              }
+            } else {
+              // バフ付与（自分）の時
+              buffByCharacter.push({ buffCommand: buff, object: oneMessageTargetContext.object });
             }
-            bByCharacter.buffCommand = buff;
-            bByCharacter.object = oneMessageTargetContext.object;
-            buffByCharacter.push(bByCharacter);
           }
         }
+        // ▲▲▲ 修正ここまで ▲▲▲
       }
     }
     
-    // ここでようやく0件ではない配列が引き渡されます
+    // 集計したコマンドリストを実行プロセスへ引き渡す
     this.resourceEditProcess(sendFromObject, resourceByCharacter , buffByCharacter, originalMessage , isSecret);
   }
 

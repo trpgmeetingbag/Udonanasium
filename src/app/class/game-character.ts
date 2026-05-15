@@ -26,6 +26,13 @@ export class GameCharacter extends TabletopObject {
       // @SyncVar() chatColorCode: { '0': string, '1': string, '2': string } = { '0': '', '1': '', '2': '' };
 
  
+  _targeted: boolean = false;
+  get targeted(): boolean {
+    return this._targeted;
+  }
+  set targeted( flag: boolean) {
+    this._targeted = flag;
+  }
   
 
   get name(): string { return this.getCommonValue('name', ''); }
