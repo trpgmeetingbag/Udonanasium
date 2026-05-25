@@ -5,6 +5,13 @@
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/TK11235/udonarium/blob/master/LICENSE)
 
+## もっとよいもの
+　ここから下に一応説明が続くわけだけど正直見る必要はない。なぜならもっと良いものがあったからです。
+ https://github.com/tubochan/udonarium_lily_sdk2023
+ ↑もっと完璧にユドナリウムリリィを模したもの
+ せいぜいバニラユドナリウムのアップデートについていけていないこととビルドに必要なnpmのバージョンがめちゃくちゃ低いくらいしか欠点がないぞ。
+ うちが優れてるのなんてバニラユドナリウムのアプデをベースにしてるのと着信音があるくらいだ！
+
 ## 目次
 
 - [機能](#機能)
